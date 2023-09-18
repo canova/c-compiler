@@ -60,6 +60,6 @@ macro_rules! comment_test {
     };
 }
 
-comment_test!(slash_slash_skips_to_end_of_line, "// testing { hello }\n 1234" => 21);
-comment_test!(comment_skip_curly_braces, "/* test \n 1234 */ hello wor\nld" => 18);
-comment_test!(comment_skip_ignores_alphanumeric, "123 hello world" => 0);
+comment_test!(test_slash_slash_skips_to_end_of_line, "// testing { hello }\n 1234" => 21);
+comment_test!(test_comment_skip_curly_braces, "/* test \n 1234 */ hello wor\nld" => 17);
+comment_test!(test_comment_skip_ignores_alphanumeric, "123 hello world" => 0);
