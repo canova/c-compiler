@@ -27,7 +27,9 @@ where
 pub fn tokenize_ident(data: &str) -> Result<(TokenKind, usize), String> {
     // identifiers can't start with a number
     match data.chars().next() {
-        Some(ch) if ch.is_digit(10) => return Err("Identifiers can't start with a number".into()),
+        Some(ch) if ch.is_ascii_digit() => {
+            return Err("Identifiers can't start with a number".into())
+        }
         None => return Err("Unexpected EOF".into()),
         _ => {}
     }
@@ -36,7 +38,7 @@ pub fn tokenize_ident(data: &str) -> Result<(TokenKind, usize), String> {
 
     // TODO: Add the new keywords here.
     match got {
-        "int" => return Ok((TokenKind::Keyword(Keyword::Int), bytes_read)),
+        "int" => Ok((TokenKind::Keyword(Keyword::Int), bytes_read)),
         "return" => Ok((TokenKind::Keyword(Keyword::Return), bytes_read)),
         _ => Ok((TokenKind::Identifier(got.to_string()), bytes_read)),
     }
@@ -46,7 +48,7 @@ pub fn tokenize_integer(data: &str) -> Result<(TokenKind, usize), String> {
     let mut seen_dot = false;
 
     let (decimal, bytes_read) = take_while(data, |c| {
-        if c.is_digit(10) {
+        if c.is_ascii_digit() {
             true
         } else if c == '.' {
             if !seen_dot {

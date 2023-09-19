@@ -3,7 +3,7 @@ pub mod ast;
 use std::vec;
 
 use crate::lexer::{Keyword, Token, TokenKind, TokenStream};
-use ast::*;
+pub use ast::*;
 
 pub struct Parser {
     token_stream: TokenStream,
@@ -104,7 +104,7 @@ impl Parser {
 
     fn parse_statements(&mut self) -> Result<Vec<Statement>, String> {
         let mut statements = vec![];
-        while let Err(_) = self.peek_token_kind(TokenKind::RBrace) {
+        while self.peek_token_kind(TokenKind::RBrace).is_err() {
             statements.push(self.parse_statement()?);
         }
 

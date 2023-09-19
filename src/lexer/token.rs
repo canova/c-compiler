@@ -16,7 +16,6 @@ pub enum TokenKind {
     LBrace,    // {
     RBrace,    // }
     Semicolon, // ;
-    EOF,
 }
 
 #[derive(Debug, Clone, PartialEq)]
