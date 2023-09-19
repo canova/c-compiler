@@ -3,12 +3,13 @@ mod whitespace;
 
 pub mod token;
 use self::helpers::*;
-use self::token::*;
+pub use self::token::*;
+use std::iter::Peekable;
+use std::vec::IntoIter;
 
 #[derive(Debug)]
 pub struct TokenStream {
-    pub tokens: Vec<Token>,
-    pub pos: usize,
+    pub tokens: Peekable<IntoIter<Token>>,
 }
 
 pub struct Tokenizer<'a> {
@@ -30,7 +31,9 @@ impl<'a> Tokenizer<'a> {
         while let Some(token) = self.next_token()? {
             tokens.push(token);
         }
-        Ok(TokenStream { tokens, pos: 0 })
+        Ok(TokenStream {
+            tokens: tokens.into_iter().peekable(),
+        })
     }
 
     fn next_token(&mut self) -> Result<Option<Token>, String> {
@@ -133,9 +136,9 @@ macro_rules! tokenizer_single_token_test {
         #[test]
         fn $name() {
             let tokenizer = Tokenizer::new($src);
-            let token_stream = tokenizer.tokenize().unwrap();
+            let mut token_stream = tokenizer.tokenize().unwrap();
             assert_eq!(token_stream.tokens.len(), 1);
-            assert_eq!(token_stream.tokens[0], $should_be);
+            assert_eq!(token_stream.tokens.next().unwrap(), $should_be);
         }
     };
 }

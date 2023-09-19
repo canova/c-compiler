@@ -1,9 +1,12 @@
-pub mod lexer;
+mod lexer;
+mod parser;
 
 fn main() {
-    println!("Hello, world!");
+    let tokenizer = lexer::Tokenizer::new("int main() { return 123; }");
+    let token_stream = tokenizer.tokenize().expect("Tokenizer has failed.");
 
-    let tokenizer = lexer::Tokenizer::new("int main() { return 2; }");
-    let token_stream = tokenizer.tokenize();
-    println!("{:#?}", token_stream);
+    let parser = parser::Parser::new(token_stream);
+    let ast = parser.parse();
+
+    println!("{:#?}", ast);
 }
