@@ -5,7 +5,7 @@ set -e
 
 gcc_asm() {
   echo "Generating assembly for $@"
-  gcc -S -O3 -fno-asynchronous-unwind-tables "$@"
+  gcc -S -O3 -fno-exceptions -fno-asynchronous-unwind-tables -fno-dwarf2-cfi-asm "$@"
   basename="$(basename $@)"
   bat "${basename%.*}.s"
 }
