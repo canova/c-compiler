@@ -9,7 +9,15 @@ use std::path::PathBuf;
 use std::process::Command;
 
 fn main() {
-    let file_path = env::args().nth(1).map(|f| PathBuf::from(f));
+    // Skip the first argument, which is the name of the program.
+    // TODO: Use a proper argument parser.
+    let args = env::args().skip(1).collect::<Vec<_>>();
+    let is_dry_run = args.iter().any(|arg| arg.contains("--dry-run"));
+    let file_path = args
+        .iter()
+        .find(|arg| !arg.starts_with("--"))
+        .map(|f| PathBuf::from(f));
+
     let file_content = if let Some(ref file_path) = file_path {
         fs::read_to_string(file_path).unwrap()
     } else {
@@ -32,6 +40,11 @@ fn main() {
 
     println!("Assembly output:");
     println!("{}\n", asm);
+
+    if is_dry_run {
+        // No need to generate the assembly if we're just doing a dry run.
+        return;
+    }
 
     if let Some(ref path) = file_path {
         // Write the assembly to a file if it was provided.
