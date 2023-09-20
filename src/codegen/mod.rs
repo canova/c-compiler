@@ -1,25 +1,7 @@
+pub mod asm;
+
 use crate::parser::*;
-
-#[derive(Debug, PartialEq)]
-pub struct Assembly {
-    asm: Vec<String>,
-}
-
-impl Assembly {
-    fn new() -> Assembly {
-        Assembly { asm: Vec::new() }
-    }
-
-    fn push<S: Into<String>>(&mut self, string: S) {
-        self.asm.push(string.into())
-    }
-}
-
-impl ToString for Assembly {
-    fn to_string(&self) -> String {
-        self.asm.join("\n")
-    }
-}
+pub use asm::Assembly;
 
 #[derive(Debug, PartialEq)]
 pub struct ARMCodegen {
