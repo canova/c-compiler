@@ -17,6 +17,7 @@ pub enum Statement {
     Return(Box<Expr>),
 }
 
+#[allow(dead_code)]
 #[derive(Debug, PartialEq)]
 pub enum Expr {
     String(String),
