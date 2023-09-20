@@ -41,19 +41,18 @@ impl ARMCodegen {
     fn generate_program(&mut self, program: Program) -> Result<(), String> {
         // Header.
         self.asm
-            .push(".section	__TEXT,__text,regular,pure_instructions");
+            .push(".section __TEXT,__text,regular,pure_instructions");
         self.asm
-            .push(".build_version macos, 13, 0	sdk_version 13, 3");
-        self.asm.push(".globl	_main");
-        self.asm.push(".p2align	2");
+            .push(".build_version macos, 13, 0 sdk_version 13, 3");
 
         // main function.
-
         self.generate_function(program.function)?;
         Ok(())
     }
 
     fn generate_function(&mut self, func: Function) -> Result<(), String> {
+        self.asm.push(format!(".globl _{}", func.name));
+        self.asm.push(".p2align 2");
         self.asm.push(format!("_{}:", func.name));
         for stmt in func.body {
             self.generate_statement(stmt)?;
@@ -67,7 +66,7 @@ impl ARMCodegen {
             Statement::Return(expr) => {
                 match *expr {
                     Expr::Int(int) => {
-                        self.asm.push(format!("mov	w0, #{}", int));
+                        self.asm.push(format!("mov w0, #{}", int));
                     }
                     _ => {
                         // TODO: Support other types.
