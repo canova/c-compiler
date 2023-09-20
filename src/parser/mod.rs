@@ -136,3 +136,85 @@ impl Parser {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lexer::{tests::ALLOWED_STAGES, Tokenizer};
+
+    #[test]
+    fn test_parser_valid_files() {
+        use std::fs;
+
+        let test_dirs = fs::read_dir("tests/").unwrap();
+        for dir in test_dirs {
+            let dir = dir.unwrap();
+            if !dir.file_type().unwrap().is_dir() {
+                // Skip the files.
+                continue;
+            }
+
+            if !ALLOWED_STAGES.contains(&dir.file_name().to_str().unwrap()) {
+                // Skip the invalid directory.
+                continue;
+            }
+
+            let mut path = dir.path();
+            path.push("valid");
+            let test_files = fs::read_dir(path).unwrap();
+
+            for file in test_files {
+                let file = file.unwrap();
+                let path = file.path();
+                let path = path.to_str().unwrap();
+
+                println!("Testing parser for: {}", path);
+                let contents = fs::read_to_string(path).unwrap();
+                let tokenizer = Tokenizer::new(&contents);
+                let token_stream = tokenizer.tokenize().unwrap();
+
+                let parser = Parser::new(token_stream);
+                let program_ast = parser.parse();
+                assert!(!program_ast.is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn test_parser_invalid_files() {
+        use std::fs;
+
+        let test_dirs = fs::read_dir("tests/").unwrap();
+        for dir in test_dirs {
+            let dir = dir.unwrap();
+            if !dir.file_type().unwrap().is_dir() {
+                // Skip the files.
+                continue;
+            }
+
+            if !ALLOWED_STAGES.contains(&dir.file_name().to_str().unwrap()) {
+                // Skip the invalid directory.
+                continue;
+            }
+
+            let mut path = dir.path();
+            path.push("invalid");
+            let test_files = fs::read_dir(path).unwrap();
+
+            for file in test_files {
+                let file = file.unwrap();
+                let path = file.path();
+                let path = path.to_str().unwrap();
+
+                println!("Testing parser for: {}", path);
+                let contents = fs::read_to_string(path).unwrap();
+                let tokenizer = Tokenizer::new(&contents);
+                let token_stream = tokenizer.tokenize().unwrap();
+
+                let parser = Parser::new(token_stream);
+                let program_ast = parser.parse();
+                assert!(program_ast.is_err());
+            }
+        }
+    }
+}

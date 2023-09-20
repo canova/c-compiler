@@ -88,17 +88,16 @@ impl<'a> Tokenizer<'a> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     // TODO: Add the other stages here as we go along.
-    static ALLOWED_STAGES: &'static [&str] = &["stage_1"];
+    pub static ALLOWED_STAGES: &'static [&str] = &["stage_1"];
 
     #[test]
     fn test_tokenizer_valid_files() {
         use std::fs;
 
         let test_dirs = fs::read_dir("tests/").unwrap();
-
         for dir in test_dirs {
             let dir = dir.unwrap();
             if !dir.file_type().unwrap().is_dir() {
@@ -120,11 +119,11 @@ mod tests {
                 let path = file.path();
                 let path = path.to_str().unwrap();
 
-                println!("Testing: {}", path);
+                println!("Testing lexer for: {}", path);
                 let contents = fs::read_to_string(path).unwrap();
                 let tokenizer = Tokenizer::new(&contents);
                 let token_stream = tokenizer.tokenize();
-                assert!(!token_stream.is_err())
+                assert!(!token_stream.is_err());
             }
         }
     }
