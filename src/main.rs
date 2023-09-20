@@ -5,7 +5,7 @@ mod parser;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() {
@@ -16,7 +16,7 @@ fn main() {
     let file_path = args
         .iter()
         .find(|arg| !arg.starts_with("--"))
-        .map(|f| PathBuf::from(f));
+        .map(PathBuf::from);
 
     let file_content = if let Some(ref file_path) = file_path {
         fs::read_to_string(file_path).unwrap()
@@ -57,16 +57,12 @@ fn main() {
     }
 }
 
-fn compile_asm(asm_file: &PathBuf) {
+fn compile_asm(asm_file: &Path) {
     let obj_file = asm_file.with_extension("o");
     println!("Writing object file to: {:?}", obj_file);
     // as -o output.o output.s
     let output = Command::new("as")
-        .args([
-            "-o",
-            &obj_file.to_str().unwrap(),
-            asm_file.to_str().unwrap(),
-        ])
+        .args(["-o", obj_file.to_str().unwrap(), asm_file.to_str().unwrap()])
         .output()
         .expect("Failed to execute process");
 
@@ -90,7 +86,7 @@ fn compile_asm(asm_file: &PathBuf) {
             obj_file.to_str().unwrap(),
             "-lSystem",
             "-syslibroot",
-            &String::from_utf8_lossy(&sdk_path.stdout).trim(),
+            String::from_utf8_lossy(&sdk_path.stdout).trim(),
             "-e",
             "_main",
             "-arch",
