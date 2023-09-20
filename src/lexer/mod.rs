@@ -88,84 +88,94 @@ impl<'a> Tokenizer<'a> {
 }
 
 #[cfg(test)]
-#[test]
-fn test_tokenizer_valid_files() {
-    use std::fs;
-    let test_dirs = fs::read_dir("tests/").unwrap();
+mod tests {
+    use super::*;
+    // TODO: Add the other stages here as we go along.
+    static ALLOWED_STAGES: &'static [&str] = &["stage_1"];
 
-    for dir in test_dirs {
-        let dir = dir.unwrap();
-        if !dir.file_type().unwrap().is_dir() {
-            // Skip the files.
-            continue;
-        }
+    #[test]
+    fn test_tokenizer_valid_files() {
+        use std::fs;
 
-        let mut path = dir.path();
-        path.push("valid");
-        let test_files = fs::read_dir(path).unwrap();
+        let test_dirs = fs::read_dir("tests/").unwrap();
 
-        for file in test_files {
-            let file = file.unwrap();
-            let path = file.path();
-            let path = path.to_str().unwrap();
+        for dir in test_dirs {
+            let dir = dir.unwrap();
+            if !dir.file_type().unwrap().is_dir() {
+                // Skip the files.
+                continue;
+            }
 
-            println!("Testing: {}", path);
-            let contents = fs::read_to_string(path).unwrap();
-            let tokenizer = Tokenizer::new(&contents);
-            let token_stream = tokenizer.tokenize();
-            assert!(!token_stream.is_err())
+            if !ALLOWED_STAGES.contains(&dir.file_name().to_str().unwrap()) {
+                // Skip the invalid directory.
+                continue;
+            }
+
+            let mut path = dir.path();
+            path.push("valid");
+            let test_files = fs::read_dir(path).unwrap();
+
+            for file in test_files {
+                let file = file.unwrap();
+                let path = file.path();
+                let path = path.to_str().unwrap();
+
+                println!("Testing: {}", path);
+                let contents = fs::read_to_string(path).unwrap();
+                let tokenizer = Tokenizer::new(&contents);
+                let token_stream = tokenizer.tokenize();
+                assert!(!token_stream.is_err())
+            }
         }
     }
-}
 
-macro_rules! tokenizer_test {
-    ($name:ident, $src:expr => $should_be:expr) => {
-        #[cfg(test)]
-        #[test]
-        fn $name() {
-            let tokenizer = Tokenizer::new($src);
-            let token_stream = tokenizer.tokenize().unwrap();
-            assert_eq!(token_stream.tokens.len(), $should_be);
-        }
-    };
-}
+    macro_rules! tokenizer_test {
+        ($name:ident, $src:expr => $should_be:expr) => {
+            #[test]
+            fn $name() {
+                let tokenizer = Tokenizer::new($src);
+                let token_stream = tokenizer.tokenize().unwrap();
+                assert_eq!(token_stream.tokens.len(), $should_be);
+            }
+        };
+    }
 
-macro_rules! tokenizer_single_token_test {
-    ($name:ident, $src:expr => $should_be:expr) => {
-        #[cfg(test)]
-        #[test]
-        fn $name() {
-            let tokenizer = Tokenizer::new($src);
-            let mut token_stream = tokenizer.tokenize().unwrap();
-            assert_eq!(token_stream.tokens.len(), 1);
-            assert_eq!(token_stream.tokens.next().unwrap(), $should_be);
-        }
-    };
-}
+    macro_rules! tokenizer_single_token_test {
+        ($name:ident, $src:expr => $should_be:expr) => {
+            #[test]
+            fn $name() {
+                let tokenizer = Tokenizer::new($src);
+                let mut token_stream = tokenizer.tokenize().unwrap();
+                assert_eq!(token_stream.tokens.len(), 1);
+                assert_eq!(token_stream.tokens.next().unwrap(), $should_be);
+            }
+        };
+    }
 
-tokenizer_test!(test_tokenize_main, "int main() {}" => 6);
-tokenizer_test!(test_tokenize_main_with_return, "int main() { return 0; }" => 9);
-tokenizer_single_token_test!(test_tokenize_int, "int" => Token {
-    kind: TokenKind::Keyword(Keyword::Int),
-    span: Some(Span { lo: 0, hi: 3 }),
-});
-tokenizer_single_token_test!(test_tokenize_return, "return" => Token {
-    kind: TokenKind::Keyword(Keyword::Return),
-    span: Some(Span { lo: 0, hi: 6 }),
-});
-tokenizer_single_token_test!(test_tokenize_ident, "testing" => Token {
-    kind: TokenKind::Identifier("testing".into()),
-    span: Some(Span { lo: 0, hi: 7 }),
-});
-tokenizer_single_token_test!(test_tokenize_integer, "123" => Token {
-    kind: TokenKind::Integer(123),
-    span: Some(Span { lo: 0, hi: 3 }),
-});
-tokenizer_single_token_test!(test_tokenize_decimal, "123.23" => Token {
-    kind: TokenKind::Decimal(123.23),
-    span: Some(Span { lo: 0, hi: 6 }),
-});
-tokenizer_single_token_test!(test_tokenize_l_brace, "{" => Token {
-    kind: TokenKind::LBrace,
-    span: Some(Span { lo: 0, hi: 1 }),
-});
+    tokenizer_test!(test_tokenize_main, "int main() {}" => 6);
+    tokenizer_test!(test_tokenize_main_with_return, "int main() { return 0; }" => 9);
+    tokenizer_single_token_test!(test_tokenize_int, "int" => Token {
+        kind: TokenKind::Keyword(Keyword::Int),
+        span: Some(Span { lo: 0, hi: 3 }),
+    });
+    tokenizer_single_token_test!(test_tokenize_return, "return" => Token {
+        kind: TokenKind::Keyword(Keyword::Return),
+        span: Some(Span { lo: 0, hi: 6 }),
+    });
+    tokenizer_single_token_test!(test_tokenize_ident, "testing" => Token {
+        kind: TokenKind::Identifier("testing".into()),
+        span: Some(Span { lo: 0, hi: 7 }),
+    });
+    tokenizer_single_token_test!(test_tokenize_integer, "123" => Token {
+        kind: TokenKind::Integer(123),
+        span: Some(Span { lo: 0, hi: 3 }),
+    });
+    tokenizer_single_token_test!(test_tokenize_decimal, "123.23" => Token {
+        kind: TokenKind::Decimal(123.23),
+        span: Some(Span { lo: 0, hi: 6 }),
+    });
+    tokenizer_single_token_test!(test_tokenize_l_brace, "{" => Token {
+        kind: TokenKind::LBrace,
+        span: Some(Span { lo: 0, hi: 1 }),
+    });
+}

@@ -64,8 +64,8 @@ fn compile_asm(asm_file: &PathBuf) {
     let output = Command::new("as")
         .args([
             "-o",
-            &obj_file.as_os_str().to_str().unwrap(),
-            asm_file.as_os_str().to_str().unwrap(),
+            &obj_file.to_str().unwrap(),
+            asm_file.to_str().unwrap(),
         ])
         .output()
         .expect("Failed to execute process");
@@ -86,8 +86,8 @@ fn compile_asm(asm_file: &PathBuf) {
             "-macosx_version_min",
             "13.0.0",
             "-o",
-            executable_file.as_os_str().to_str().unwrap(),
-            obj_file.as_os_str().to_str().unwrap(),
+            executable_file.to_str().unwrap(),
+            obj_file.to_str().unwrap(),
             "-lSystem",
             "-syslibroot",
             &String::from_utf8_lossy(&sdk_path.stdout).trim(),
