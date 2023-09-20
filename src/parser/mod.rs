@@ -129,7 +129,19 @@ impl Parser {
         match self.next() {
             Some(token) => match token.kind {
                 // TODO: Implement the other expression types.
-                TokenKind::Integer(int) => Ok(Expr::Int(int)),
+                TokenKind::Integer(int) => Ok(Expr::Constant(Constant::Int(int))),
+                TokenKind::Minus => {
+                    let expr = self.parse_expr()?;
+                    Ok(Expr::UnaryOp(UnaryOp::Negation, Box::new(expr)))
+                }
+                TokenKind::LogicalNegation => {
+                    let expr = self.parse_expr()?;
+                    Ok(Expr::UnaryOp(UnaryOp::LogicalNegation, Box::new(expr)))
+                }
+                TokenKind::BitwiseComplement => {
+                    let expr = self.parse_expr()?;
+                    Ok(Expr::UnaryOp(UnaryOp::BitwiseComplement, Box::new(expr)))
+                }
                 other => Err(format!("Expected expression, but got {:?}", other)),
             },
             None => Err("Expected expression, but got EOF".to_string()),

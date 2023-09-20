@@ -72,6 +72,9 @@ impl<'a> Tokenizer<'a> {
             '{' => (TokenKind::LBrace, 1),
             '}' => (TokenKind::RBrace, 1),
             ';' => (TokenKind::Semicolon, 1),
+            '-' => (TokenKind::Minus, 1),
+            '~' => (TokenKind::BitwiseComplement, 1),
+            '!' => (TokenKind::LogicalNegation, 1),
             '0'..='9' => tokenize_integer(data)?,
             c @ '_' | c if c.is_alphabetic() => tokenize_ident(data)?,
             other => return Err(format!("Unknown character: {:?}", other)),
@@ -91,7 +94,7 @@ impl<'a> Tokenizer<'a> {
 pub(crate) mod tests {
     use super::*;
     // TODO: Add the other stages here as we go along.
-    pub static ALLOWED_STAGES: &'static [&str] = &["stage_1"];
+    pub static ALLOWED_STAGES: &'static [&str] = &["stage_1", "stage_2"];
 
     #[test]
     fn test_tokenizer_valid_files() {

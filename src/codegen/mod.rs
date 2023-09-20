@@ -45,21 +45,45 @@ impl ARMCodegen {
 
     fn generate_statement(&mut self, stmt: Statement) -> Result<(), String> {
         match stmt {
-            Statement::Return(expr) => {
-                match *expr {
-                    Expr::Int(int) => {
-                        self.asm.push(format!("mov w0, #{}", int));
-                    }
-                    _ => {
-                        // TODO: Support other types.
-                        return Err(format!(
-                            "Only int return expression is supported but got {:?}",
-                            expr
-                        ));
-                    }
+            Statement::Return(expr) => match *expr {
+                Expr::Constant(Constant::Int(int)) => {
+                    self.asm.push(format!("mov w0, #{}", int));
                 }
-            }
+                expression => self.generate_expr(expression)?,
+            },
         }
         Ok(())
+    }
+
+    fn generate_expr(&mut self, expr: Expr) -> Result<(), String> {
+        match expr {
+            Expr::Constant(Constant::Int(int)) => {
+                self.asm.push(format!("mov w0, #{}", int));
+                Ok(())
+            }
+            Expr::UnaryOp(unary_op, expr) => match unary_op {
+                UnaryOp::Negation => {
+                    self.generate_expr(*expr)?;
+                    self.asm.push("neg w0, w0");
+                    Ok(())
+                }
+                UnaryOp::BitwiseComplement => {
+                    self.generate_expr(*expr)?;
+                    self.asm.push("mvn w0, w0");
+                    Ok(())
+                }
+                UnaryOp::LogicalNegation => {
+                    self.generate_expr(*expr)?;
+                    self.asm.push("cmp w0, #0");
+                    self.asm.push("mov w0, #0");
+                    self.asm.push("cset w0, eq");
+                    Ok(())
+                }
+            },
+            _ => {
+                // TODO: Support other types.
+                return Err(format!("Unexpected expression {:?}", expr));
+            }
+        }
     }
 }

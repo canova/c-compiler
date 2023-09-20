@@ -23,7 +23,7 @@ fn main() {
     } else {
         // FIXME: Just a dummy program for now.
         println!("No input file provided. Using a dummy program.\n");
-        "int main() { return 123; }".into()
+        "int main() { return !123; }".into()
     };
 
     let tokenizer = lexer::Tokenizer::new(&file_content);

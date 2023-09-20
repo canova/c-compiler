@@ -11,11 +11,14 @@ pub enum TokenKind {
     Integer(i32),
     Decimal(f64),
     Keyword(Keyword),
-    LParen,    // (
-    RParen,    // )
-    LBrace,    // {
-    RBrace,    // }
-    Semicolon, // ;
+    LParen,            // (
+    RParen,            // )
+    LBrace,            // {
+    RBrace,            // }
+    Semicolon,         // ;
+    Minus,             // -
+    BitwiseComplement, // ~
+    LogicalNegation,   // !
 }
 
 #[derive(Debug, Clone, PartialEq)]
