@@ -1,3 +1,9 @@
 /target
+/bin
 output
-output.o
+*.out
+*.o
+
+# Ignore all the assembly files except the ones in the examples directory.
+*.s
+!examples/*.s
