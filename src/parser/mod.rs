@@ -172,32 +172,22 @@ impl Parser {
     fn parse_atom(&mut self) -> Result<Expr, String> {
         let token = self.next().ok_or("Expected atom, but got EOF")?;
         match token.kind {
+            TokenKind::Integer(int_val) => Ok(Expr::Constant(Constant::Int(int_val))),
             TokenKind::LParen => {
                 let expr = self.parse_expr()?;
                 self.expect(TokenKind::RParen)?;
                 Ok(expr)
             }
-            // Unary ops here:
-            // TODO: Make this more generic.
-            TokenKind::Minus => {
+            // Unary ops
+            op if op.is_unary_op() => {
                 let expr = self.parse_atom()?;
-                Ok(Expr::UnaryOp(UnaryOp::Negation, Box::new(expr)))
+                op.get_unary_op(expr)
             }
-            TokenKind::LogicalNegation => {
-                let expr = self.parse_atom()?;
-                Ok(Expr::UnaryOp(UnaryOp::LogicalNegation, Box::new(expr)))
-            }
-            TokenKind::BitwiseComplement => {
-                let expr = self.parse_atom()?;
-                Ok(Expr::UnaryOp(UnaryOp::BitwiseComplement, Box::new(expr)))
-            }
-            // Binary ops here:
-            // TODO: Make this more generic.
-            other if other == TokenKind::Asterisk || other == TokenKind::Slash => Err(format!(
+            // Warning for binary ops
+            other if other.is_binary_op() => Err(format!(
                 "Expected atom, but got a binary operator {:?}",
                 other
             )),
-            TokenKind::Integer(int_val) => Ok(Expr::Constant(Constant::Int(int_val))),
             other => Err(format!("Expected atom, but got {:?}", other)),
         }
     }
