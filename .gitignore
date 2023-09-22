@@ -1,5 +1,5 @@
 /target
-/bin
+/obj
 output
 *.out
 *.o
