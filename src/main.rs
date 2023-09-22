@@ -2,23 +2,30 @@ mod codegen;
 mod lexer;
 mod parser;
 
-use std::env;
+use clap::Parser;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// A toy C compiler that outputs ARM64 assembly.
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// C source file path to compile.
+    file: Option<PathBuf>,
+
+    /// Whether to just do a dry run. Will just print the assembly to stdout.
+    #[arg(short, long, default_value_t = false)]
+    dry_run: bool,
+}
+
 fn main() {
+    let args = Args::parse();
     // Skip the first argument, which is the name of the program.
     // TODO: Use a proper argument parser.
-    let args = env::args().skip(1).collect::<Vec<_>>();
-    let is_dry_run = args.iter().any(|arg| arg.contains("--dry-run"));
-    let file_path = args
-        .iter()
-        .find(|arg| !arg.starts_with("--"))
-        .map(PathBuf::from);
 
-    let file_content = if let Some(ref file_path) = file_path {
+    let file_content = if let Some(ref file_path) = args.file {
         fs::read_to_string(file_path).unwrap()
     } else {
         // FIXME: Just a dummy program for now.
@@ -41,12 +48,12 @@ fn main() {
     println!("Assembly output:");
     println!("{}\n", asm);
 
-    if is_dry_run {
+    if args.dry_run {
         // No need to generate the assembly if we're just doing a dry run.
         return;
     }
 
-    if let Some(ref path) = file_path {
+    if let Some(ref path) = args.file {
         // Write the assembly to a file if it was provided.
         let mut asm_file = path.clone();
         asm_file.set_extension("s");
