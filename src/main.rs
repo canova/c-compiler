@@ -30,7 +30,7 @@ fn main() {
     } else {
         // FIXME: Just a dummy program for now.
         println!("No input file provided. Using a dummy program.\n");
-        "int main() { return 2 * (3 + 4); }".into()
+        "int main() { return 1 || 2; }".into()
     };
 
     let tokenizer = lexer::Tokenizer::new(&file_content);
@@ -39,6 +39,7 @@ fn main() {
     let parser = parser::Parser::new(token_stream);
     let program_ast = parser.parse().expect("Parsing phase has failed");
 
+    println!("AST output:\n{:#?}\n", program_ast);
     let codegen = codegen::ARMCodegen::new();
 
     let asm = codegen

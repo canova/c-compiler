@@ -1,6 +1,6 @@
 use super::token::{Keyword, TokenKind};
 
-/// Consumes bytes while a predicate evaluates to true.
+/// Consume bytes while a predicate evaluates to true.
 pub fn take_while<F>(data: &str, mut pred: F) -> Result<(&str, usize), String>
 where
     F: FnMut(char) -> bool,
@@ -24,6 +24,7 @@ where
     }
 }
 
+/// Consume an identifier from the input stream.
 pub fn tokenize_ident(data: &str) -> Result<(TokenKind, usize), String> {
     // identifiers can't start with a number
     match data.chars().next() {
@@ -44,6 +45,7 @@ pub fn tokenize_ident(data: &str) -> Result<(TokenKind, usize), String> {
     }
 }
 
+/// Tokenize an integer or a float.
 pub fn tokenize_integer(data: &str) -> Result<(TokenKind, usize), String> {
     let mut seen_dot = false;
 

@@ -22,6 +22,14 @@ pub enum TokenKind {
     Slash,             // /
     BitwiseComplement, // ~
     LogicalNegation,   // !
+    And,               // &&
+    Or,                // ||
+    Equal,             // ==
+    NotEqual,          // !=
+    LessThan,          // <
+    LessThanOrEq,      // <=
+    GreaterThan,       // >
+    GreaterThanOrEq,   // >=
 }
 
 #[derive(Debug, Clone, PartialEq)]

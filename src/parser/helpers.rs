@@ -20,8 +20,8 @@ impl Token {
         self.kind.get_bin_op(lhs, rhs)
     }
 
-    pub fn get_op_pres_assoc(&self) -> Result<(u8, OpAssociativity), String> {
-        self.kind.get_op_pres_assoc()
+    pub fn get_op_prec_assoc(&self) -> Result<(u8, OpAssociativity), String> {
+        self.kind.get_op_prec_assoc()
     }
 }
 
@@ -29,7 +29,18 @@ impl TokenKind {
     pub fn is_binary_op(&self) -> bool {
         matches!(
             self,
-            TokenKind::Plus | TokenKind::Minus | TokenKind::Asterisk | TokenKind::Slash
+            TokenKind::Plus
+                | TokenKind::Minus
+                | TokenKind::Asterisk
+                | TokenKind::Slash
+                | TokenKind::And
+                | TokenKind::Or
+                | TokenKind::Equal
+                | TokenKind::NotEqual
+                | TokenKind::LessThan
+                | TokenKind::LessThanOrEq
+                | TokenKind::GreaterThan
+                | TokenKind::GreaterThanOrEq
         )
     }
 
@@ -59,6 +70,14 @@ impl TokenKind {
                 TokenKind::Minus => BinaryOp::Subtraction,
                 TokenKind::Asterisk => BinaryOp::Multiplication,
                 TokenKind::Slash => BinaryOp::Division,
+                TokenKind::And => BinaryOp::And,
+                TokenKind::Or => BinaryOp::Or,
+                TokenKind::Equal => BinaryOp::Equal,
+                TokenKind::NotEqual => BinaryOp::NotEqual,
+                TokenKind::LessThan => BinaryOp::LessThan,
+                TokenKind::LessThanOrEq => BinaryOp::LessThanOrEq,
+                TokenKind::GreaterThan => BinaryOp::GreaterThan,
+                TokenKind::GreaterThanOrEq => BinaryOp::GreaterThanOrEq,
                 other => return Err(format!("Expected binary operator, but got {:?}", other)),
             },
             Box::new(lhs),
@@ -66,12 +85,21 @@ impl TokenKind {
         ))
     }
 
-    pub fn get_op_pres_assoc(&self) -> Result<(u8, OpAssociativity), String> {
+    /// https://en.cppreference.com/w/c/language/operator_precedence
+    /// TODO: Move this to a static constant.
+    pub fn get_op_prec_assoc(&self) -> Result<(u8, OpAssociativity), String> {
         match &self {
-            TokenKind::Plus | TokenKind::Minus => Ok((1, OpAssociativity::Left)),
-            TokenKind::Asterisk | TokenKind::Slash => Ok((2, OpAssociativity::Left)),
+            TokenKind::Or => Ok((1, OpAssociativity::Left)),
+            TokenKind::And => Ok((2, OpAssociativity::Left)),
+            TokenKind::Equal | TokenKind::NotEqual => Ok((3, OpAssociativity::Left)),
+            TokenKind::LessThan
+            | TokenKind::LessThanOrEq
+            | TokenKind::GreaterThan
+            | TokenKind::GreaterThanOrEq => Ok((4, OpAssociativity::Left)),
+            TokenKind::Plus | TokenKind::Minus => Ok((5, OpAssociativity::Left)),
+            TokenKind::Asterisk | TokenKind::Slash => Ok((6, OpAssociativity::Left)),
             TokenKind::LogicalNegation | TokenKind::BitwiseComplement => {
-                Ok((3, OpAssociativity::Right))
+                Ok((7, OpAssociativity::Right))
             }
             other => Err(format!("Expected operator, but got {:?}", other)),
         }

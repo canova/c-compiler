@@ -64,10 +64,24 @@ pub enum BinaryOp {
     Subtraction,
     Multiplication,
     Division,
+    And,
+    Or,
+    Equal,
+    NotEqual,
+    LessThan,
+    LessThanOrEq,
+    GreaterThan,
+    GreaterThanOrEq,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum OpAssociativity {
     Left,
     Right,
+}
+
+impl BinaryOp {
+    pub fn is_short_circuiting_op(&self) -> bool {
+        matches!(self, BinaryOp::And | BinaryOp::Or)
+    }
 }

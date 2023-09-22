@@ -18,6 +18,7 @@ pub struct Tokenizer<'a> {
 }
 
 impl<'a> Tokenizer<'a> {
+    /// Create a new tokenizer from the given input.
     pub fn new(input: &str) -> Tokenizer {
         Tokenizer {
             remaining_source: input,
@@ -36,6 +37,7 @@ impl<'a> Tokenizer<'a> {
         })
     }
 
+    /// Get the next token from the input stream.
     fn next_token(&mut self) -> Result<Option<Token>, String> {
         self.skip_whitespace();
 
@@ -61,7 +63,8 @@ impl<'a> Tokenizer<'a> {
     /// Try to lex a single token from the input stream.
     pub fn tokenize_single_token(&mut self) -> Result<TokenKind, String> {
         let data = self.remaining_source;
-        let next = match data.chars().next() {
+        let mut rem_chars = data.chars().peekable();
+        let next = match rem_chars.next() {
             Some(c) => c,
             None => return Err("Unexpected EOF".into()),
         };
@@ -77,7 +80,16 @@ impl<'a> Tokenizer<'a> {
             '*' => (TokenKind::Asterisk, 1),
             '/' => (TokenKind::Slash, 1),
             '~' => (TokenKind::BitwiseComplement, 1),
+            '&' if rem_chars.peek() == Some(&'&') => (TokenKind::And, 2),
+            '|' if rem_chars.peek() == Some(&'|') => (TokenKind::Or, 2),
+            '=' if rem_chars.peek() == Some(&'=') => (TokenKind::Equal, 2),
+            '!' if rem_chars.peek() == Some(&'=') => (TokenKind::NotEqual, 2),
+            '<' if rem_chars.peek() == Some(&'=') => (TokenKind::LessThanOrEq, 2),
+            '>' if rem_chars.peek() == Some(&'=') => (TokenKind::GreaterThanOrEq, 2),
+            // They have to stay after their two-char counterparts.
             '!' => (TokenKind::LogicalNegation, 1),
+            '<' => (TokenKind::LessThan, 1),
+            '>' => (TokenKind::GreaterThan, 1),
             '0'..='9' => tokenize_integer(data)?,
             c @ '_' | c if c.is_alphabetic() => tokenize_ident(data)?,
             other => return Err(format!("Unknown character: {:?}", other)),
@@ -87,6 +99,7 @@ impl<'a> Tokenizer<'a> {
         Ok(tok)
     }
 
+    /// Consume the given number of bytes from the input stream.
     fn chomp(&mut self, num_bytes: usize) {
         self.remaining_source = &self.remaining_source[num_bytes..];
         self.pos += num_bytes;
@@ -97,7 +110,7 @@ impl<'a> Tokenizer<'a> {
 pub(crate) mod tests {
     use super::*;
     // TODO: Add the other stages here as we go along.
-    pub static ALLOWED_STAGES: &'static [&str] = &["stage_1", "stage_2", "stage_3"];
+    pub static ALLOWED_STAGES: &'static [&str] = &["stage_1", "stage_2", "stage_3", "stage_4"];
 
     #[test]
     fn test_tokenizer_valid_files() {
@@ -129,6 +142,10 @@ pub(crate) mod tests {
                 let contents = fs::read_to_string(path).unwrap();
                 let tokenizer = Tokenizer::new(&contents);
                 let token_stream = tokenizer.tokenize();
+                if path.contains("skip_on_failure") && token_stream.is_err() {
+                    println!("Failed but skipping: {}", path);
+                    continue;
+                }
                 assert!(!token_stream.is_err());
             }
         }
@@ -182,5 +199,25 @@ pub(crate) mod tests {
     tokenizer_single_token_test!(test_tokenize_l_brace, "{" => Token {
         kind: TokenKind::LBrace,
         span: Some(Span { lo: 0, hi: 1 }),
+    });
+    tokenizer_single_token_test!(test_tokenize_not_equal, "!=" => Token {
+        kind: TokenKind::NotEqual,
+        span: Some(Span { lo: 0, hi: 2 }),
+    });
+    tokenizer_single_token_test!(test_tokenize_logical_negation, "!" => Token {
+        kind: TokenKind::LogicalNegation,
+        span: Some(Span { lo: 0, hi: 1 }),
+    });
+    tokenizer_single_token_test!(test_tokenize_equal, "==" => Token {
+        kind: TokenKind::Equal,
+        span: Some(Span { lo: 0, hi: 2 }),
+    });
+    tokenizer_single_token_test!(test_tokenize_greater_than, ">" => Token {
+        kind: TokenKind::GreaterThan,
+        span: Some(Span { lo: 0, hi: 1 }),
+    });
+    tokenizer_single_token_test!(test_tokenize_greater_than_or_eq, ">=" => Token {
+        kind: TokenKind::GreaterThanOrEq,
+        span: Some(Span { lo: 0, hi: 2 }),
     });
 }

@@ -1,5 +1,7 @@
 pub mod asm;
+mod helpers;
 
+use self::helpers::*;
 use crate::parser::*;
 pub use asm::Assembly;
 
@@ -75,7 +77,7 @@ impl ARMCodegen {
                     }
                     UnaryOp::LogicalNegation => {
                         self.asm.push("cmp w0, #0");
-                        self.asm.push("mov w0, #0");
+                        self.asm.push("mov w0, wzr");
                         self.asm.push("cset w0, eq");
                         Ok(())
                     }
@@ -86,6 +88,11 @@ impl ARMCodegen {
                 // to the stack. This is highly inefficient. Since we have a lot of registers
                 // available to us in ARM64, we should use them instead.
                 self.generate_expr(lhs)?;
+
+                if binary_op.is_short_circuiting_op() {
+                    self.generate_short_circuiting_expr(binary_op, rhs)?;
+                    return Ok(());
+                }
 
                 // It looks like we need to keep 16 byte alignment.
                 // https://stackoverflow.com/a/34504752/3582646
@@ -105,6 +112,38 @@ impl ARMCodegen {
                         // an optimization with `udiv`.
                         self.asm.push("sdiv w0, w1, w0");
                     }
+                    BinaryOp::Equal => {
+                        self.asm.push("cmp w1, w0");
+                        self.asm.push("mov w0, wzr");
+                        self.asm.push("cset w0, eq");
+                    }
+                    BinaryOp::NotEqual => {
+                        self.asm.push("cmp w1, w0");
+                        self.asm.push("mov w0, wzr");
+                        self.asm.push("cset w0, ne");
+                    }
+                    BinaryOp::LessThan => {
+                        self.asm.push("cmp w1, w0");
+                        self.asm.push("mov w0, wzr");
+                        self.asm.push("cset w0, lt");
+                    }
+                    BinaryOp::LessThanOrEq => {
+                        self.asm.push("cmp w1, w0");
+                        self.asm.push("mov w0, wzr");
+                        self.asm.push("cset w0, le");
+                    }
+                    BinaryOp::GreaterThan => {
+                        self.asm.push("cmp w1, w0");
+                        self.asm.push("mov w0, wzr");
+                        self.asm.push("cset w0, gt");
+                    }
+                    BinaryOp::GreaterThanOrEq => {
+                        self.asm.push("cmp w1, w0");
+                        self.asm.push("mov w0, wzr");
+                        self.asm.push("cset w0, ge");
+                    }
+                    BinaryOp::And => {}
+                    BinaryOp::Or => {}
                 }
                 Ok(())
             }
@@ -112,6 +151,40 @@ impl ARMCodegen {
                 // TODO: Support other types.
                 Err(format!("Unexpected expression {:?}", expr))
             }
+        }
+    }
+
+    fn generate_short_circuiting_expr(
+        &mut self,
+        binary_op: &BinaryOp,
+        rhs: &Box<Expr>,
+    ) -> Result<(), String> {
+        let end_label = unique_label();
+
+        match binary_op {
+            BinaryOp::And => {
+                // If lhs is false, we don't need to evaluate rhs.
+                self.asm.push("cmp w0, #0");
+                self.asm.push("cset w0, ne");
+                self.asm.push(format!("cbz w0, {}", end_label));
+                self.generate_expr(rhs)?;
+                self.asm.push("cmp w0, #0");
+                self.asm.push("cset w0, ne");
+                self.asm.push(format!("{}:", end_label));
+                Ok(())
+            }
+            BinaryOp::Or => {
+                // If lhs is true, we don't need to evaluate rhs.
+                self.asm.push("cmp w0, #0");
+                self.asm.push("cset w0, ne");
+                self.asm.push(format!("cbnz w0, {}", end_label));
+                self.generate_expr(rhs)?;
+                self.asm.push("cmp w0, #0");
+                self.asm.push("cset w0, ne");
+                self.asm.push(format!("{}:", end_label));
+                Ok(())
+            }
+            _ => Err(format!("Unexpected binary operator {:?}", binary_op)),
         }
     }
 }
