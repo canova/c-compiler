@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub span: Option<Span>,
@@ -16,7 +16,10 @@ pub enum TokenKind {
     LBrace,            // {
     RBrace,            // }
     Semicolon,         // ;
+    Plus,              // +
     Minus,             // -
+    Asterisk,          // *
+    Slash,             // /
     BitwiseComplement, // ~
     LogicalNegation,   // !
 }
@@ -27,7 +30,7 @@ pub enum Keyword {
     Int,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Span {
     pub lo: usize,
     pub hi: usize,

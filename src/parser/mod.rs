@@ -1,4 +1,5 @@
 pub mod ast;
+mod helpers;
 
 use std::vec;
 
@@ -126,25 +127,78 @@ impl Parser {
     }
 
     fn parse_expr(&mut self) -> Result<Expr, String> {
-        match self.next() {
-            Some(token) => match token.kind {
-                // TODO: Implement the other expression types.
-                TokenKind::Integer(int) => Ok(Expr::Constant(Constant::Int(int))),
-                TokenKind::Minus => {
-                    let expr = self.parse_expr()?;
-                    Ok(Expr::UnaryOp(UnaryOp::Negation, Box::new(expr)))
+        self.parse_expr_with_min_precedence(1)
+    }
+
+    /// Parse an expression with an operator-precedence parser using precedence
+    /// climbing method.
+    /// https://en.wikipedia.org/wiki/Operator-precedence_parser#Precedence_climbing_method
+    fn parse_expr_with_min_precedence(&mut self, min_precedence: u8) -> Result<Expr, String> {
+        let mut atom_lhs = self.parse_atom()?;
+
+        loop {
+            if self.peek_token_kind(TokenKind::Semicolon).is_ok() {
+                // Break if we see a semicolon. It will be consumed later.
+                break;
+            }
+
+            let next = self.peek().map(|f| (*f).clone());
+            match next {
+                None => break,
+                Some(ref op) if op.is_binary_op() => {
+                    let (precedence, assoc) = op.get_op_pres_assoc()?;
+                    if precedence < min_precedence {
+                        break;
+                    }
+
+                    // Advance the token stream.
+                    let _ = self.next();
+
+                    let next_min_precedence = if assoc == OpAssociativity::Left {
+                        precedence + 1
+                    } else {
+                        precedence
+                    };
+                    let atom_rhs = self.parse_expr_with_min_precedence(next_min_precedence)?;
+                    atom_lhs = op.get_bin_op(atom_lhs, atom_rhs)?;
                 }
-                TokenKind::LogicalNegation => {
-                    let expr = self.parse_expr()?;
-                    Ok(Expr::UnaryOp(UnaryOp::LogicalNegation, Box::new(expr)))
-                }
-                TokenKind::BitwiseComplement => {
-                    let expr = self.parse_expr()?;
-                    Ok(Expr::UnaryOp(UnaryOp::BitwiseComplement, Box::new(expr)))
-                }
-                other => Err(format!("Expected expression, but got {:?}", other)),
-            },
-            None => Err("Expected expression, but got EOF".to_string()),
+                _ => break,
+            }
+        }
+
+        Ok(atom_lhs)
+    }
+
+    fn parse_atom(&mut self) -> Result<Expr, String> {
+        let token = self.next().ok_or("Expected atom, but got EOF")?;
+        match token.kind {
+            TokenKind::LParen => {
+                let expr = self.parse_expr()?;
+                self.expect(TokenKind::RParen)?;
+                Ok(expr)
+            }
+            // Unary ops here:
+            // TODO: Make this more generic.
+            TokenKind::Minus => {
+                let expr = self.parse_atom()?;
+                Ok(Expr::UnaryOp(UnaryOp::Negation, Box::new(expr)))
+            }
+            TokenKind::LogicalNegation => {
+                let expr = self.parse_atom()?;
+                Ok(Expr::UnaryOp(UnaryOp::LogicalNegation, Box::new(expr)))
+            }
+            TokenKind::BitwiseComplement => {
+                let expr = self.parse_atom()?;
+                Ok(Expr::UnaryOp(UnaryOp::BitwiseComplement, Box::new(expr)))
+            }
+            // Binary ops here:
+            // TODO: Make this more generic.
+            other if other == TokenKind::Asterisk || other == TokenKind::Slash => Err(format!(
+                "Expected atom, but got a binary operator {:?}",
+                other
+            )),
+            TokenKind::Integer(int_val) => Ok(Expr::Constant(Constant::Int(int_val))),
+            other => Err(format!("Expected atom, but got {:?}", other)),
         }
     }
 }

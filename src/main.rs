@@ -23,20 +23,20 @@ fn main() {
     } else {
         // FIXME: Just a dummy program for now.
         println!("No input file provided. Using a dummy program.\n");
-        "int main() { return !123; }".into()
+        "int main() { return 2 * (3 + 4); }".into()
     };
 
     let tokenizer = lexer::Tokenizer::new(&file_content);
-    let token_stream = tokenizer.tokenize().expect("Tokenizing phase has failed.");
+    let token_stream = tokenizer.tokenize().expect("Tokenizing phase has failed");
 
     let parser = parser::Parser::new(token_stream);
-    let program_ast = parser.parse().expect("Parsing phase has failed.");
+    let program_ast = parser.parse().expect("Parsing phase has failed");
 
     let codegen = codegen::ARMCodegen::new();
 
     let asm = codegen
         .generate(program_ast)
-        .expect("Codegen phase has failed.");
+        .expect("Codegen phase has failed");
 
     println!("Assembly output:");
     println!("{}\n", asm);
@@ -52,7 +52,7 @@ fn main() {
         asm_file.set_extension("s");
         println!("Writing assembly to file: {:?}", asm_file);
 
-        fs::write(&asm_file, asm).expect("Couldn't write to file.");
+        fs::write(&asm_file, asm).expect("Couldn't write to file");
         compile_asm(&asm_file);
     }
 }

@@ -49,40 +49,68 @@ impl ARMCodegen {
                 Expr::Constant(Constant::Int(int)) => {
                     self.asm.push(format!("mov w0, #{}", int));
                 }
-                expression => self.generate_expr(expression)?,
+                expression => self.generate_expr(&expression)?,
             },
         }
         Ok(())
     }
 
-    fn generate_expr(&mut self, expr: Expr) -> Result<(), String> {
+    fn generate_expr(&mut self, expr: &Expr) -> Result<(), String> {
         match expr {
             Expr::Constant(Constant::Int(int)) => {
                 self.asm.push(format!("mov w0, #{}", int));
                 Ok(())
             }
-            Expr::UnaryOp(unary_op, expr) => match unary_op {
-                UnaryOp::Negation => {
-                    self.generate_expr(*expr)?;
-                    self.asm.push("neg w0, w0");
-                    Ok(())
+            Expr::UnaryOp(unary_op, expr) => {
+                self.generate_expr(expr)?;
+
+                match unary_op {
+                    UnaryOp::Negation => {
+                        self.asm.push("neg w0, w0");
+                        Ok(())
+                    }
+                    UnaryOp::BitwiseComplement => {
+                        self.asm.push("mvn w0, w0");
+                        Ok(())
+                    }
+                    UnaryOp::LogicalNegation => {
+                        self.asm.push("cmp w0, #0");
+                        self.asm.push("mov w0, #0");
+                        self.asm.push("cset w0, eq");
+                        Ok(())
+                    }
                 }
-                UnaryOp::BitwiseComplement => {
-                    self.generate_expr(*expr)?;
-                    self.asm.push("mvn w0, w0");
-                    Ok(())
+            }
+            Expr::BinaryOp(binary_op, lhs, rhs) => {
+                // FIXME: Currently we do a very naive code generation here by pushing the values
+                // to the stack. This is highly inefficient. Since we have a lot of registers
+                // available to us in ARM64, we should use them instead.
+                self.generate_expr(lhs)?;
+
+                // It looks like we need to keep 16 byte alignment.
+                // https://stackoverflow.com/a/34504752/3582646
+                // We first push the value to the stack.
+                self.asm.push("stp x0, xzr, [sp, #-16]!");
+                self.generate_expr(rhs)?;
+                // And then we pop it back to x1.
+                self.asm.push("ldp x1, xzr, [sp], #16");
+
+                // lhs is in w1, rhs is in w0.
+                match binary_op {
+                    BinaryOp::Addition => self.asm.push("add w0, w1, w0"),
+                    BinaryOp::Subtraction => self.asm.push("sub w0, w1, w0"),
+                    BinaryOp::Multiplication => self.asm.push("mul w0, w1, w0"),
+                    BinaryOp::Division => {
+                        // We use signed division here, but we can probably add
+                        // an optimization with `udiv`.
+                        self.asm.push("sdiv w0, w1, w0");
+                    }
                 }
-                UnaryOp::LogicalNegation => {
-                    self.generate_expr(*expr)?;
-                    self.asm.push("cmp w0, #0");
-                    self.asm.push("mov w0, #0");
-                    self.asm.push("cset w0, eq");
-                    Ok(())
-                }
-            },
+                Ok(())
+            }
             _ => {
                 // TODO: Support other types.
-                return Err(format!("Unexpected expression {:?}", expr));
+                Err(format!("Unexpected expression {:?}", expr))
             }
         }
     }

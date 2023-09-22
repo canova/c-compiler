@@ -1,13 +1,24 @@
-// TODO: Add more AST nodes.
-// TODO: Implement spans.
 /// The AST nodes for the parser.
+///
+/// Current AST definition:
+/// program = Program(function_declaration)
+/// function_declaration = Function(string, statement) //string is the function name
+/// statement = Return(exp)
+/// exp = BinOp(binary_operator, exp, exp)
+///     | UnOp(unary_operator, exp)
+///     | Constant(int)
 ///
 /// Current formal grammar:
 /// <program> ::= <function>
 /// <function> ::= "int" <id> "(" ")" "{" <statement> "}"
 /// <statement> ::= "return" <exp> ";"
-/// <exp> ::= <unary_op> <exp> | <int>
+/// <exp> ::= <term> { ("+" | "-") <term> }
+/// <term> ::= <factor> { ("*" | "/") <factor> }
+/// <factor> ::= "(" <exp> ")" | <unary_op> <factor> | <int>
 /// <unary_op> ::= "!" | "~" | "-"
+///
+/// TODO: Add more AST nodes.
+/// TODO: Implement spans.
 
 #[derive(Debug, PartialEq)]
 pub struct Program {
@@ -25,11 +36,11 @@ pub enum Statement {
     Return(Box<Expr>),
 }
 
-#[allow(dead_code)]
 #[derive(Debug, PartialEq)]
 pub enum Expr {
     Constant(Constant),
     UnaryOp(UnaryOp, Box<Expr>),
+    BinaryOp(BinaryOp, Box<Expr>, Box<Expr>),
 }
 
 #[allow(dead_code)]
@@ -40,10 +51,23 @@ pub enum Constant {
     Bool(bool),
 }
 
-#[allow(dead_code)]
 #[derive(Debug, PartialEq)]
 pub enum UnaryOp {
     Negation,
     LogicalNegation,
     BitwiseComplement,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum BinaryOp {
+    Addition,
+    Subtraction,
+    Multiplication,
+    Division,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum OpAssociativity {
+    Left,
+    Right,
 }
