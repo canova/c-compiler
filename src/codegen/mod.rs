@@ -64,87 +64,11 @@ impl ARMCodegen {
                 Ok(())
             }
             Expr::UnaryOp(unary_op, expr) => {
-                self.generate_expr(expr)?;
-
-                match unary_op {
-                    UnaryOp::Negation => {
-                        self.asm.push("neg w0, w0");
-                        Ok(())
-                    }
-                    UnaryOp::BitwiseComplement => {
-                        self.asm.push("mvn w0, w0");
-                        Ok(())
-                    }
-                    UnaryOp::LogicalNegation => {
-                        self.asm.push("cmp w0, #0");
-                        self.asm.push("mov w0, wzr");
-                        self.asm.push("cset w0, eq");
-                        Ok(())
-                    }
-                }
+                self.generate_unary_op(unary_op, expr)?;
+                Ok(())
             }
             Expr::BinaryOp(binary_op, lhs, rhs) => {
-                // FIXME: Currently we do a very naive code generation here by pushing the values
-                // to the stack. This is highly inefficient. Since we have a lot of registers
-                // available to us in ARM64, we should use them instead.
-                self.generate_expr(lhs)?;
-
-                if binary_op.is_short_circuiting_op() {
-                    self.generate_short_circuiting_expr(binary_op, rhs)?;
-                    return Ok(());
-                }
-
-                // It looks like we need to keep 16 byte alignment.
-                // https://stackoverflow.com/a/34504752/3582646
-                // We first push the value to the stack.
-                self.asm.push("stp x0, xzr, [sp, #-16]!");
-                self.generate_expr(rhs)?;
-                // And then we pop it back to x1.
-                self.asm.push("ldp x1, xzr, [sp], #16");
-
-                // lhs is in w1, rhs is in w0.
-                match binary_op {
-                    BinaryOp::Addition => self.asm.push("add w0, w1, w0"),
-                    BinaryOp::Subtraction => self.asm.push("sub w0, w1, w0"),
-                    BinaryOp::Multiplication => self.asm.push("mul w0, w1, w0"),
-                    BinaryOp::Division => {
-                        // We use signed division here, but we can probably add
-                        // an optimization with `udiv`.
-                        self.asm.push("sdiv w0, w1, w0");
-                    }
-                    BinaryOp::Equal => {
-                        self.asm.push("cmp w1, w0");
-                        self.asm.push("mov w0, wzr");
-                        self.asm.push("cset w0, eq");
-                    }
-                    BinaryOp::NotEqual => {
-                        self.asm.push("cmp w1, w0");
-                        self.asm.push("mov w0, wzr");
-                        self.asm.push("cset w0, ne");
-                    }
-                    BinaryOp::LessThan => {
-                        self.asm.push("cmp w1, w0");
-                        self.asm.push("mov w0, wzr");
-                        self.asm.push("cset w0, lt");
-                    }
-                    BinaryOp::LessThanOrEq => {
-                        self.asm.push("cmp w1, w0");
-                        self.asm.push("mov w0, wzr");
-                        self.asm.push("cset w0, le");
-                    }
-                    BinaryOp::GreaterThan => {
-                        self.asm.push("cmp w1, w0");
-                        self.asm.push("mov w0, wzr");
-                        self.asm.push("cset w0, gt");
-                    }
-                    BinaryOp::GreaterThanOrEq => {
-                        self.asm.push("cmp w1, w0");
-                        self.asm.push("mov w0, wzr");
-                        self.asm.push("cset w0, ge");
-                    }
-                    BinaryOp::And => {}
-                    BinaryOp::Or => {}
-                }
+                self.generate_binary_op(binary_op, lhs, rhs)?;
                 Ok(())
             }
             _ => {
@@ -154,7 +78,97 @@ impl ARMCodegen {
         }
     }
 
-    fn generate_short_circuiting_expr(
+    fn generate_unary_op(&mut self, unary_op: &UnaryOp, expr: &Box<Expr>) -> Result<(), String> {
+        self.generate_expr(expr)?;
+
+        match unary_op {
+            UnaryOp::Negation => {
+                self.asm.push("neg w0, w0");
+            }
+            UnaryOp::BitwiseComplement => {
+                self.asm.push("mvn w0, w0");
+            }
+            UnaryOp::LogicalNegation => {
+                self.asm.push("cmp w0, #0");
+                self.asm.push("mov w0, wzr");
+                self.asm.push("cset w0, eq");
+            }
+        }
+        Ok(())
+    }
+
+    fn generate_binary_op(
+        &mut self,
+        binary_op: &BinaryOp,
+        lhs: &Box<Expr>,
+        rhs: &Box<Expr>,
+    ) -> Result<(), String> {
+        // FIXME: Currently we do a very naive code generation here by pushing the values
+        // to the stack. This is highly inefficient. Since we have a lot of registers
+        // available to us in ARM64, we should use them instead.
+        self.generate_expr(lhs)?;
+
+        if binary_op.is_short_circuiting_op() {
+            self.generate_short_circuiting_op(binary_op, rhs)?;
+            return Ok(());
+        }
+
+        // It looks like we need to keep 16 byte alignment.
+        // https://stackoverflow.com/a/34504752/3582646
+        // We first push the value to the stack.
+        self.asm.push("stp x0, xzr, [sp, #-16]!");
+        self.generate_expr(rhs)?;
+        // And then we pop it back to x1.
+        self.asm.push("ldp x1, xzr, [sp], #16");
+
+        // lhs is in w1, rhs is in w0.
+        match binary_op {
+            BinaryOp::Addition => self.asm.push("add w0, w1, w0"),
+            BinaryOp::Subtraction => self.asm.push("sub w0, w1, w0"),
+            BinaryOp::Multiplication => self.asm.push("mul w0, w1, w0"),
+            BinaryOp::Division => {
+                // We use signed division here, but we can probably add
+                // an optimization with `udiv`.
+                self.asm.push("sdiv w0, w1, w0");
+            }
+            BinaryOp::Equal => {
+                self.asm.push("cmp w1, w0");
+                self.asm.push("mov w0, wzr");
+                self.asm.push("cset w0, eq");
+            }
+            BinaryOp::NotEqual => {
+                self.asm.push("cmp w1, w0");
+                self.asm.push("mov w0, wzr");
+                self.asm.push("cset w0, ne");
+            }
+            BinaryOp::LessThan => {
+                self.asm.push("cmp w1, w0");
+                self.asm.push("mov w0, wzr");
+                self.asm.push("cset w0, lt");
+            }
+            BinaryOp::LessThanOrEq => {
+                self.asm.push("cmp w1, w0");
+                self.asm.push("mov w0, wzr");
+                self.asm.push("cset w0, le");
+            }
+            BinaryOp::GreaterThan => {
+                self.asm.push("cmp w1, w0");
+                self.asm.push("mov w0, wzr");
+                self.asm.push("cset w0, gt");
+            }
+            BinaryOp::GreaterThanOrEq => {
+                self.asm.push("cmp w1, w0");
+                self.asm.push("mov w0, wzr");
+                self.asm.push("cset w0, ge");
+            }
+            BinaryOp::And => {}
+            BinaryOp::Or => {}
+        }
+
+        Ok(())
+    }
+
+    fn generate_short_circuiting_op(
         &mut self,
         binary_op: &BinaryOp,
         rhs: &Box<Expr>,
