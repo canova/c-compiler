@@ -41,6 +41,12 @@ impl TokenKind {
                 | TokenKind::LessThanOrEq
                 | TokenKind::GreaterThan
                 | TokenKind::GreaterThanOrEq
+                | TokenKind::Modulo
+                | TokenKind::BitwiseAnd
+                | TokenKind::BitwiseOr
+                | TokenKind::BitwiseXor
+                | TokenKind::BitwiseShiftLeft
+                | TokenKind::BitwiseShiftRight
         )
     }
 
@@ -78,6 +84,12 @@ impl TokenKind {
                 TokenKind::LessThanOrEq => BinaryOp::LessThanOrEq,
                 TokenKind::GreaterThan => BinaryOp::GreaterThan,
                 TokenKind::GreaterThanOrEq => BinaryOp::GreaterThanOrEq,
+                TokenKind::Modulo => BinaryOp::Modulo,
+                TokenKind::BitwiseAnd => BinaryOp::BitwiseAnd,
+                TokenKind::BitwiseOr => BinaryOp::BitwiseOr,
+                TokenKind::BitwiseXor => BinaryOp::BitwiseXor,
+                TokenKind::BitwiseShiftLeft => BinaryOp::BitwiseShiftLeft,
+                TokenKind::BitwiseShiftRight => BinaryOp::BitwiseShiftRight,
                 other => return Err(format!("Expected binary operator, but got {:?}", other)),
             },
             Box::new(lhs),
@@ -91,15 +103,23 @@ impl TokenKind {
         match &self {
             TokenKind::Or => Ok((1, OpAssociativity::Left)),
             TokenKind::And => Ok((2, OpAssociativity::Left)),
-            TokenKind::Equal | TokenKind::NotEqual => Ok((3, OpAssociativity::Left)),
+            TokenKind::BitwiseOr => Ok((3, OpAssociativity::Left)),
+            TokenKind::BitwiseXor => Ok((4, OpAssociativity::Left)),
+            TokenKind::BitwiseAnd => Ok((5, OpAssociativity::Left)),
+            TokenKind::Equal | TokenKind::NotEqual => Ok((6, OpAssociativity::Left)),
             TokenKind::LessThan
             | TokenKind::LessThanOrEq
             | TokenKind::GreaterThan
-            | TokenKind::GreaterThanOrEq => Ok((4, OpAssociativity::Left)),
-            TokenKind::Plus | TokenKind::Minus => Ok((5, OpAssociativity::Left)),
-            TokenKind::Asterisk | TokenKind::Slash => Ok((6, OpAssociativity::Left)),
+            | TokenKind::GreaterThanOrEq => Ok((7, OpAssociativity::Left)),
+            TokenKind::BitwiseShiftLeft | TokenKind::BitwiseShiftRight => {
+                Ok((8, OpAssociativity::Left))
+            }
+            TokenKind::Plus | TokenKind::Minus => Ok((9, OpAssociativity::Left)),
+            TokenKind::Asterisk | TokenKind::Slash | TokenKind::Modulo => {
+                Ok((10, OpAssociativity::Left))
+            }
             TokenKind::LogicalNegation | TokenKind::BitwiseComplement => {
-                Ok((7, OpAssociativity::Right))
+                Ok((11, OpAssociativity::Right))
             }
             other => Err(format!("Expected operator, but got {:?}", other)),
         }

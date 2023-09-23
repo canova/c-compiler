@@ -78,7 +78,7 @@ impl ARMCodegen {
         }
     }
 
-    fn generate_unary_op(&mut self, unary_op: &UnaryOp, expr: &Box<Expr>) -> Result<(), String> {
+    fn generate_unary_op(&mut self, unary_op: &UnaryOp, expr: &Expr) -> Result<(), String> {
         self.generate_expr(expr)?;
 
         match unary_op {
@@ -100,8 +100,8 @@ impl ARMCodegen {
     fn generate_binary_op(
         &mut self,
         binary_op: &BinaryOp,
-        lhs: &Box<Expr>,
-        rhs: &Box<Expr>,
+        lhs: &Expr,
+        rhs: &Expr,
     ) -> Result<(), String> {
         // FIXME: Currently we do a very naive code generation here by pushing the values
         // to the stack. This is highly inefficient. Since we have a lot of registers
@@ -161,6 +161,26 @@ impl ARMCodegen {
                 self.asm.push("mov w0, wzr");
                 self.asm.push("cset w0, ge");
             }
+            BinaryOp::Modulo => {
+                self.asm.push("sdiv w2, w1, w0");
+                self.asm.push("msub w0, w2, w0, w1");
+            }
+            BinaryOp::BitwiseAnd => {
+                self.asm.push("and w0, w1, w0");
+            }
+            BinaryOp::BitwiseOr => {
+                self.asm.push("orr w0, w1, w0");
+            }
+            BinaryOp::BitwiseXor => {
+                self.asm.push("eor w0, w1, w0");
+            }
+            BinaryOp::BitwiseShiftLeft => {
+                self.asm.push("lsl w0, w1, w0");
+            }
+            BinaryOp::BitwiseShiftRight => {
+                self.asm.push("lsr w0, w1, w0");
+            }
+            // These are short circuiting operators, so we don't need to do anything here.
             BinaryOp::And => {}
             BinaryOp::Or => {}
         }
@@ -171,7 +191,7 @@ impl ARMCodegen {
     fn generate_short_circuiting_op(
         &mut self,
         binary_op: &BinaryOp,
-        rhs: &Box<Expr>,
+        rhs: &Expr,
     ) -> Result<(), String> {
         let end_label = unique_label();
 

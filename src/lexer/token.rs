@@ -30,6 +30,12 @@ pub enum TokenKind {
     LessThanOrEq,      // <=
     GreaterThan,       // >
     GreaterThanOrEq,   // >=
+    Modulo,            // %
+    BitwiseAnd,        // &
+    BitwiseOr,         // |
+    BitwiseXor,        // ^
+    BitwiseShiftLeft,  // <<
+    BitwiseShiftRight, // >>
 }
 
 #[derive(Debug, Clone, PartialEq)]

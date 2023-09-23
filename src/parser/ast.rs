@@ -8,15 +8,6 @@
 ///     | UnOp(unary_operator, exp)
 ///     | Constant(int)
 ///
-/// Current formal grammar:
-/// <program> ::= <function>
-/// <function> ::= "int" <id> "(" ")" "{" <statement> "}"
-/// <statement> ::= "return" <exp> ";"
-/// <exp> ::= <term> { ("+" | "-") <term> }
-/// <term> ::= <factor> { ("*" | "/") <factor> }
-/// <factor> ::= "(" <exp> ")" | <unary_op> <factor> | <int>
-/// <unary_op> ::= "!" | "~" | "-"
-///
 /// TODO: Add more AST nodes.
 /// TODO: Implement spans.
 
@@ -72,6 +63,12 @@ pub enum BinaryOp {
     LessThanOrEq,
     GreaterThan,
     GreaterThanOrEq,
+    Modulo,
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor,
+    BitwiseShiftLeft,
+    BitwiseShiftRight,
 }
 
 #[derive(Debug, PartialEq)]
