@@ -50,10 +50,11 @@ fn main() {
 
     if let Some(ref path) = args.file {
         // Write the assembly to a file if it was provided.
-        let mut asm_file = path.clone();
+        let mut asm_file = Path::new("obj").join(path);
         asm_file.set_extension("s");
         println!("Writing assembly to file: {:?}", asm_file);
 
+        let _ = fs::create_dir_all(&asm_file);
         fs::write(&asm_file, asm).expect("Couldn't write to file");
         compile_asm(&asm_file);
     }
