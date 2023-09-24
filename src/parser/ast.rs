@@ -2,18 +2,25 @@
 ///
 /// Current AST definition:
 /// program = Program(function_declaration)
-/// function_declaration = Function(string, statement list) //string is the function name
+/// function_declaration = Function(string, block_item list) //string is the function name
+///
+/// block_item = Statement(statement) | Declaration(declaration)
+///
+/// declaration = Declare(string, exp option) //string is variable name
+///                                          //exp is optional initializer
 ///
 /// statement = Return(exp)
-///           | Declare(string, exp option) //string is variable name
-///                                         //exp is optional initializer
 ///           | Exp(exp)
+///           | Conditional(exp, statement, statement option) //exp is controlling condition
+///                                                           //first statement is 'if' block
+///                                                           //second statement is optional 'else' block
 ///
 /// exp = Assign(string, exp)
 ///     | Var(string) //string is variable name
 ///     | BinOp(binary_operator, exp, exp)
 ///     | UnOp(unary_operator, exp)
 ///     | Constant(int)
+///     | CondExp(exp, exp, exp) //the three expressions are the condition, 'if' expression and 'else' expression, respectively
 ///
 /// TODO: Implement spans.
 
@@ -25,12 +32,17 @@ pub struct Program {
 #[derive(Debug, PartialEq)]
 pub struct Function {
     pub name: String,
-    pub body: Vec<Statement>,
+    pub body: Vec<BlockItem>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum BlockItem {
+    Statement(Statement),
+    Declaration(VarDecl),
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
-    VarDecl(VarDecl),
     Return(Box<Expr>),
     Expression(Box<Expr>),
 }

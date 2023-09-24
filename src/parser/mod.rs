@@ -92,7 +92,7 @@ impl Parser {
         self.expect(TokenKind::RParen)?;
 
         self.expect(TokenKind::LBrace)?;
-        let body = self.parse_statements()?;
+        let body = self.parse_block_items()?;
         self.expect(TokenKind::RBrace)?;
 
         // TODO: Assert zero or one return statements for each branch.
@@ -103,25 +103,17 @@ impl Parser {
         })
     }
 
-    fn parse_statements(&mut self) -> Result<Vec<Statement>, String> {
-        let mut statements = vec![];
+    fn parse_block_items(&mut self) -> Result<Vec<BlockItem>, String> {
+        let mut block_items = vec![];
         while self.peek_token_kind(TokenKind::RBrace).is_err() {
-            statements.push(self.parse_statement()?);
+            block_items.push(self.parse_block_item()?);
         }
 
-        Ok(statements)
+        Ok(block_items)
     }
-
-    fn parse_statement(&mut self) -> Result<Statement, String> {
+    fn parse_block_item(&mut self) -> Result<BlockItem, String> {
         match self.peek() {
             Some(token) => match &token.kind {
-                TokenKind::Keyword(Keyword::Return) => {
-                    // Advance the token stream.
-                    let _ = self.next();
-                    let expr = self.parse_expr()?;
-                    self.expect(TokenKind::Semicolon)?;
-                    Ok(Statement::Return(Box::new(expr)))
-                }
                 TokenKind::Keyword(Keyword::Int) => {
                     // Advance the token stream.
                     let _ = self.next();
@@ -134,11 +126,27 @@ impl Parser {
                         Some(expr)
                     };
                     self.expect(TokenKind::Semicolon)?;
-                    Ok(Statement::VarDecl(VarDecl {
+                    Ok(BlockItem::Declaration(VarDecl {
                         name: ident,
                         size: VarSize::Word,
                         initializer,
                     }))
+                }
+                _ => self.parse_statement().map(BlockItem::Statement),
+            },
+            None => Err("Expected block item, but got EOF".to_string()),
+        }
+    }
+
+    fn parse_statement(&mut self) -> Result<Statement, String> {
+        match self.peek() {
+            Some(token) => match &token.kind {
+                TokenKind::Keyword(Keyword::Return) => {
+                    // Advance the token stream.
+                    let _ = self.next();
+                    let expr = self.parse_expr()?;
+                    self.expect(TokenKind::Semicolon)?;
+                    Ok(Statement::Return(Box::new(expr)))
                 }
                 _ => {
                     // Let's see if it's an expression. If not, parse_expr will throw an error as

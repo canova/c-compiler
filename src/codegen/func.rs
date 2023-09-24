@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::parser::ast::{Expr, Statement, VarSize};
+use crate::parser::ast::{BlockItem, Expr, Statement, VarSize};
 
 #[derive(Debug, PartialEq)]
 pub struct CodegenFunction {
@@ -28,22 +28,22 @@ pub struct FuncStack {
 }
 
 impl CodegenFunction {
-    pub fn new(stmts: &Vec<Statement>) -> Result<CodegenFunction, String> {
+    pub fn new(block_items: &Vec<BlockItem>) -> Result<CodegenFunction, String> {
         Ok(CodegenFunction {
-            stack: CodegenFunction::get_func_stack(stmts)?,
+            stack: CodegenFunction::get_func_stack(block_items)?,
             op_stack_depth: 0,
         })
     }
 
-    pub fn get_func_stack(stmts: &Vec<Statement>) -> Result<FuncStack, String> {
+    pub fn get_func_stack(block_items: &Vec<BlockItem>) -> Result<FuncStack, String> {
         let mut var_map = HashMap::new();
-        let (stack_size, op_stack_count) = Self::get_stack_size(stmts)?;
+        let (stack_size, op_stack_count) = Self::get_stack_size(block_items)?;
         let mut stack_offset = stack_size;
 
-        for stmt in stmts {
+        for item in block_items {
             #[allow(clippy::single_match)]
-            match stmt {
-                Statement::VarDecl(var_decl) => {
+            match item {
+                BlockItem::Declaration(var_decl) => {
                     if var_map.contains_key(&var_decl.name) {
                         Err(format!("Variable '{}' is already declared", var_decl.name))?;
                     }
@@ -80,24 +80,26 @@ impl CodegenFunction {
         })
     }
 
-    pub fn get_stack_size(stmts: &Vec<Statement>) -> Result<(usize, usize), String> {
+    pub fn get_stack_size(block_items: &Vec<BlockItem>) -> Result<(usize, usize), String> {
         let mut stack_size = 0;
         let mut op_stack_count = 1;
 
-        for stmt in stmts {
-            match stmt {
-                Statement::VarDecl(var_decl) => {
+        for item in block_items {
+            match item {
+                BlockItem::Declaration(var_decl) => {
                     // Look at the variable declarations.
                     stack_size += var_decl.get_byte_size();
                 }
-                Statement::Expression(expr) | Statement::Return(expr) => {
-                    // Also look at the arithmetic operations that need to push to stack and
-                    // and find the largest tree node.
-                    let expr_stack_size = expr.get_stack_size()?;
-                    if expr_stack_size > op_stack_count {
-                        op_stack_count = expr_stack_size;
+                BlockItem::Statement(stmt) => match stmt {
+                    Statement::Expression(expr) | Statement::Return(expr) => {
+                        // Also look at the arithmetic operations that need to push to stack and
+                        // and find the largest tree node.
+                        let expr_stack_size = expr.get_stack_size()?;
+                        if expr_stack_size > op_stack_count {
+                            op_stack_count = expr_stack_size;
+                        }
                     }
-                }
+                },
             }
         }
         // FIXME: Currently we support only word variable size for operations.

@@ -57,8 +57,8 @@ impl ARMCodegen {
             "sub sp, sp, #{}",
             self.funcs.last().unwrap().stack.size
         ));
-        for stmt in &func.body {
-            self.generate_statement(stmt)?;
+        for block_item in &func.body {
+            self.generate_block_item(block_item)?;
         }
         // Pop the stack in the function epilogue.
         self.asm.push(format!(
@@ -73,7 +73,7 @@ impl ARMCodegen {
             let function_has_return = func
                 .body
                 .iter()
-                .any(|stmt| matches!(stmt, Statement::Return(_)));
+                .any(|item| matches!(item, BlockItem::Statement(Statement::Return(_))));
             if !function_has_return {
                 // If the main function doesn't have a return statement, we need to
                 // return 0 as per the C standard. But that's not the case for the other
@@ -87,15 +87,10 @@ impl ARMCodegen {
         Ok(())
     }
 
-    fn generate_statement(&mut self, stmt: &Statement) -> Result<(), String> {
-        match stmt {
-            Statement::Return(expr) => match expr.as_ref() {
-                Expr::Constant(Constant::Int(int)) => {
-                    self.asm.push(format!("mov w0, #{}", int));
-                }
-                expression => self.generate_expr(&expression)?,
-            },
-            Statement::VarDecl(var_decl) => {
+    fn generate_block_item(&mut self, block_item: &BlockItem) -> Result<(), String> {
+        match block_item {
+            BlockItem::Statement(stmt) => self.generate_statement(stmt)?,
+            BlockItem::Declaration(var_decl) => {
                 if let Some(expr) = &var_decl.initializer {
                     self.generate_expr(&expr)?;
                 } else {
@@ -116,6 +111,18 @@ impl ARMCodegen {
                     }
                 }
             }
+        }
+        Ok(())
+    }
+
+    fn generate_statement(&mut self, stmt: &Statement) -> Result<(), String> {
+        match stmt {
+            Statement::Return(expr) => match expr.as_ref() {
+                Expr::Constant(Constant::Int(int)) => {
+                    self.asm.push(format!("mov w0, #{}", int));
+                }
+                expression => self.generate_expr(&expression)?,
+            },
             Statement::Expression(expr) => {
                 self.generate_expr(&expr)?;
             }

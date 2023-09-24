@@ -37,7 +37,7 @@ pub fn tokenize_ident(data: &str) -> Result<(TokenKind, usize), String> {
 
     let (got, bytes_read) = take_while(data, |ch| ch == '_' || ch.is_alphanumeric())?;
 
-    // TODO: Add the new keywords here.
+    // Add the new keywords here.
     match got {
         "int" => Ok((TokenKind::Keyword(Keyword::Int), bytes_read)),
         "return" => Ok((TokenKind::Keyword(Keyword::Return), bytes_read)),
