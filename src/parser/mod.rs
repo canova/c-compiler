@@ -148,6 +148,7 @@ impl Parser {
                     self.expect(TokenKind::Semicolon)?;
                     Ok(Statement::Return(Box::new(expr)))
                 }
+                TokenKind::Keyword(Keyword::If) => Ok(Statement::Conditional(self.parse_if()?)),
                 _ => {
                     // Let's see if it's an expression. If not, parse_expr will throw an error as
                     // this is the last possible statement option. This has to be always at the end.
@@ -235,6 +236,46 @@ impl Parser {
             )),
             other => Err(format!("Expected atom, but got {:?}", other)),
         }
+    }
+
+    fn parse_if(&mut self) -> Result<Conditional, String> {
+        self.expect(TokenKind::Keyword(Keyword::If))?;
+        self.expect(TokenKind::LParen)?;
+        let condition = self.parse_expr()?;
+        self.expect(TokenKind::RParen)?;
+
+        let if_block = if self.peek_token_kind(TokenKind::LBrace).is_ok() {
+            self.expect(TokenKind::LBrace)?;
+            let items = self.parse_block_items()?;
+            self.expect(TokenKind::RBrace)?;
+            items
+        } else {
+            vec![self.parse_block_item()?]
+        };
+
+        let else_block = if self
+            .peek_token_kind(TokenKind::Keyword(Keyword::Else))
+            .is_ok()
+        {
+            // Advance the token stream.
+            let _ = self.next();
+            Some(if self.peek_token_kind(TokenKind::LBrace).is_ok() {
+                self.expect(TokenKind::LBrace)?;
+                let items = self.parse_block_items()?;
+                self.expect(TokenKind::RBrace)?;
+                items
+            } else {
+                vec![self.parse_block_item()?]
+            })
+        } else {
+            None
+        };
+
+        Ok(Conditional {
+            condition,
+            if_block,
+            else_block,
+        })
     }
 }
 

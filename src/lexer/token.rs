@@ -37,12 +37,16 @@ pub enum TokenKind {
     BitwiseShiftLeft,  // <<
     BitwiseShiftRight, // >>
     Assignment,        // =
+    Colon,             // :
+    QuestionMark,      // ?
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Keyword {
     Return,
     Int,
+    If,
+    Else,
 }
 
 #[derive(Debug, PartialEq, Clone)]

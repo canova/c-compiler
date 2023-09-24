@@ -11,9 +11,9 @@
 ///
 /// statement = Return(exp)
 ///           | Exp(exp)
-///           | Conditional(exp, statement, statement option) //exp is controlling condition
-///                                                           //first statement is 'if' block
-///                                                           //second statement is optional 'else' block
+///           | Conditional(exp, block_item list , block_item list) //exp is controlling condition
+///                                                           //first block item is 'if' block
+///                                                           //second block item is optional 'else' block
 ///
 /// exp = Assign(string, exp)
 ///     | Var(string) //string is variable name
@@ -45,6 +45,7 @@ pub enum BlockItem {
 pub enum Statement {
     Return(Box<Expr>),
     Expression(Box<Expr>),
+    Conditional(Conditional),
 }
 
 #[derive(Debug, PartialEq)]
@@ -92,6 +93,13 @@ pub enum Expr {
     Constant(Constant),
     UnaryOp(UnaryOp, Box<Expr>),
     BinaryOp(BinaryOp, Box<Expr>, Box<Expr>),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Conditional {
+    pub condition: Expr,
+    pub if_block: Vec<BlockItem>,
+    pub else_block: Option<Vec<BlockItem>>,
 }
 
 #[allow(dead_code)]

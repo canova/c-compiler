@@ -82,6 +82,8 @@ impl<'a> Tokenizer<'a> {
             '%' => (TokenKind::Modulo, 1),
             '~' => (TokenKind::BitwiseComplement, 1),
             '^' => (TokenKind::BitwiseXor, 1),
+            ':' => (TokenKind::Colon, 1),
+            '?' => (TokenKind::QuestionMark, 1),
             '&' if rem_chars.peek() == Some(&'&') => (TokenKind::And, 2),
             '|' if rem_chars.peek() == Some(&'|') => (TokenKind::Or, 2),
             '=' if rem_chars.peek() == Some(&'=') => (TokenKind::Equal, 2),
@@ -227,5 +229,13 @@ pub(crate) mod tests {
     tokenizer_single_token_test!(test_tokenize_greater_than_or_eq, ">=" => Token {
         kind: TokenKind::GreaterThanOrEq,
         span: Some(Span { lo: 0, hi: 2 }),
+    });
+    tokenizer_single_token_test!(test_tokenize_if, "if" => Token {
+        kind: TokenKind::Keyword(Keyword::If),
+        span: Some(Span { lo: 0, hi: 2 }),
+    });
+    tokenizer_single_token_test!(test_tokenize_else, "else" => Token {
+        kind: TokenKind::Keyword(Keyword::Else),
+        span: Some(Span { lo: 0, hi: 4 }),
     });
 }

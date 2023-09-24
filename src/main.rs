@@ -54,7 +54,7 @@ fn main() {
         asm_file.set_extension("s");
         println!("Writing assembly to file: {:?}", asm_file);
 
-        let _ = fs::create_dir_all(&asm_file);
+        let _ = fs::create_dir_all(&asm_file.parent().unwrap());
         fs::write(&asm_file, asm).expect("Couldn't write to file");
         compile_asm(&asm_file);
     }

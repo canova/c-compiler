@@ -82,7 +82,8 @@ impl CodegenFunction {
 
     pub fn get_stack_size(block_items: &Vec<BlockItem>) -> Result<(usize, usize), String> {
         let mut stack_size = 0;
-        let mut op_stack_count = 1;
+        let mut op_stack_count = 0;
+        let mut max_branch_stack_size = 0;
 
         for item in block_items {
             match item {
@@ -99,11 +100,31 @@ impl CodegenFunction {
                             op_stack_count = expr_stack_size;
                         }
                     }
+                    Statement::Conditional(cond) => {
+                        // Look at the conditional statements.
+                        let (if_stack_size, if_op_stack_count) =
+                            Self::get_stack_size(&cond.if_block)?;
+                        let (else_stack_size, else_op_stack_count) =
+                            if let Some(else_block) = &cond.else_block {
+                                Self::get_stack_size(else_block)?
+                            } else {
+                                (0, 0)
+                            };
+
+                        max_branch_stack_size = std::cmp::max(
+                            std::cmp::max(if_stack_size, else_stack_size),
+                            max_branch_stack_size,
+                        );
+                        op_stack_count = std::cmp::max(
+                            std::cmp::max(if_op_stack_count, else_op_stack_count),
+                            op_stack_count,
+                        );
+                    }
                 },
             }
         }
         // FIXME: Currently we support only word variable size for operations.
-        stack_size += op_stack_count * VarSize::Word.to_bytes();
+        stack_size += max_branch_stack_size + op_stack_count * VarSize::Word.to_bytes();
 
         // Stack size has to be 16 byte aligned.
         // https://stackoverflow.com/a/34504752/3582646

@@ -41,6 +41,8 @@ pub fn tokenize_ident(data: &str) -> Result<(TokenKind, usize), String> {
     match got {
         "int" => Ok((TokenKind::Keyword(Keyword::Int), bytes_read)),
         "return" => Ok((TokenKind::Keyword(Keyword::Return), bytes_read)),
+        "if" => Ok((TokenKind::Keyword(Keyword::If), bytes_read)),
+        "else" => Ok((TokenKind::Keyword(Keyword::Else), bytes_read)),
         _ => Ok((TokenKind::Identifier(got.to_string()), bytes_read)),
     }
 }

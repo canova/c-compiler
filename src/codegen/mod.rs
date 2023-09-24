@@ -70,10 +70,7 @@ impl ARMCodegen {
             // If there is only one function, that means that it's the main function.
             // TODO: This is not the best way of checking if the main has no return.
             // We should improve this.
-            let function_has_return = func
-                .body
-                .iter()
-                .any(|item| matches!(item, BlockItem::Statement(Statement::Return(_))));
+            let function_has_return = block_has_return(&func.body)?;
             if !function_has_return {
                 // If the main function doesn't have a return statement, we need to
                 // return 0 as per the C standard. But that's not the case for the other
@@ -125,6 +122,9 @@ impl ARMCodegen {
             },
             Statement::Expression(expr) => {
                 self.generate_expr(&expr)?;
+            }
+            Statement::Conditional(conditional) => {
+                self.generate_conditional(conditional)?;
             }
         }
         Ok(())
@@ -332,5 +332,36 @@ impl ARMCodegen {
             }
             _ => Err(format!("Unexpected binary operator {:?}", binary_op)),
         }
+    }
+
+    fn generate_conditional(&mut self, conditional: &Conditional) -> Result<(), String> {
+        let end_label = unique_label();
+        let else_label = unique_label();
+
+        self.generate_expr(&conditional.condition)?;
+        self.asm.push("cmp w0, #0");
+        self.asm.push(format!(
+            "beq {}",
+            if conditional.else_block.is_some() {
+                &else_label
+            } else {
+                &end_label
+            }
+        ));
+
+        for block_item in &conditional.if_block {
+            self.generate_block_item(block_item)?;
+        }
+        self.asm.push(format!("b {}", end_label));
+
+        if let Some(else_block) = &conditional.else_block {
+            self.asm.push(format!("{}:", else_label));
+            for block_item in else_block {
+                self.generate_block_item(block_item)?;
+            }
+        }
+
+        self.asm.push(format!("{}:", end_label));
+        Ok(())
     }
 }
