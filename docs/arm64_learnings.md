@@ -8,9 +8,9 @@
     - 32-bit: `w0`
 
   32 version only accesses the lower 32bits of the same register, so they are basically the same register.
-- `sp`: stack pointer register, it's also `x29`.
-- `lr`: link register, it's also `x30`.
-- `pc`: program counter/instruction pointer, it's also `x31`.
+- `sp`: stack pointer register.
+- `lr`: link register.
+- `pc`: program counter/instruction pointer.
 - The rest of the registers are general purpose registers: `x0-x28`.
 - `xzr`-`wzr`: Zero register.
   `mov w0, wzr` writes zero. Same as `mov w0, #0`.
@@ -18,8 +18,18 @@
 - Move immediate value to a register:
 
   ```asm
-  mov x0, #12 ; Can be also hex: #0x1F
+  mov x0, #12 ; Can also be a hex: #0x1F
   ```
+
+### Calling convention
+
+- `X0 - X7`: Arguments and return value.
+- `X8`: Indirect result
+- `X9 - X17`: Temporary registers.
+- `X18`: Platform defined use.
+- `X19 - X28`: Callee-saved registers (must be preserved).
+- `X29`: Frame pointer (must be preserved).
+- `X30`: Link register - return address.
 
 ## Memory
 
