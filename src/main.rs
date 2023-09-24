@@ -22,9 +22,6 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    // Skip the first argument, which is the name of the program.
-    // TODO: Use a proper argument parser.
-
     let file_content = if let Some(ref file_path) = args.file {
         fs::read_to_string(file_path).unwrap()
     } else {

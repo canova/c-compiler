@@ -15,7 +15,6 @@
 ///     | UnOp(unary_operator, exp)
 ///     | Constant(int)
 ///
-/// TODO: Add more AST nodes.
 /// TODO: Implement spans.
 
 #[derive(Debug, PartialEq)]

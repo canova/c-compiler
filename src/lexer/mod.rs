@@ -116,7 +116,7 @@ impl<'a> Tokenizer<'a> {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    // TODO: Add the other stages here as we go along.
+    // Add the other stages here as we go along.
     pub static ALLOWED_STAGES: &'static [&str] =
         &["stage_1", "stage_2", "stage_3", "stage_4", "stage_5"];
 
