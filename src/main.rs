@@ -28,7 +28,6 @@ fn main() {
     let file_content = if let Some(ref file_path) = args.file {
         fs::read_to_string(file_path).unwrap()
     } else {
-        // FIXME: Just a dummy program for now.
         println!("No input file provided. Using a dummy program.\n");
         "int main() { return 1 || 2; }".into()
     };

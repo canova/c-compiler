@@ -57,7 +57,7 @@ impl ARMCodegen {
             "sub sp, sp, #{}",
             self.funcs.last().unwrap().stack.size
         ));
-        for stmt in func.body {
+        for stmt in &func.body {
             self.generate_statement(stmt)?;
         }
         // Pop the stack in the function epilogue.
@@ -66,23 +66,37 @@ impl ARMCodegen {
             self.funcs.last().unwrap().stack.size
         ));
 
-        // TODO: Return 0 if there isn't a return statement.
+        if self.funcs.len() == 1 {
+            // If there is only one function, that means that it's the main function.
+            // TODO: This is not the best way of checking if the main has no return.
+            // We should improve this.
+            let function_has_return = func
+                .body
+                .iter()
+                .any(|stmt| matches!(stmt, Statement::Return(_)));
+            if !function_has_return {
+                // If the main function doesn't have a return statement, we need to
+                // return 0 as per the C standard. But that's not the case for the other
+                // functions.
+                self.asm.push("mov w0, #0");
+            }
+        }
 
         self.funcs.pop();
         self.asm.push("ret");
         Ok(())
     }
 
-    fn generate_statement(&mut self, stmt: Statement) -> Result<(), String> {
+    fn generate_statement(&mut self, stmt: &Statement) -> Result<(), String> {
         match stmt {
-            Statement::Return(expr) => match *expr {
+            Statement::Return(expr) => match expr.as_ref() {
                 Expr::Constant(Constant::Int(int)) => {
                     self.asm.push(format!("mov w0, #{}", int));
                 }
                 expression => self.generate_expr(&expression)?,
             },
             Statement::VarDecl(var_decl) => {
-                if let Some(expr) = var_decl.initializer {
+                if let Some(expr) = &var_decl.initializer {
                     self.generate_expr(&expr)?;
                 } else {
                     self.asm.push("mov w0, #0");
@@ -189,9 +203,6 @@ impl ARMCodegen {
         lhs: &Expr,
         rhs: &Expr,
     ) -> Result<(), String> {
-        // FIXME: Currently we do a very naive code generation here by pushing the values
-        // to the stack. This is highly inefficient. Since we have a lot of registers
-        // available to us in ARM64, we should use them instead.
         self.generate_expr(lhs)?;
 
         if binary_op.is_short_circuiting_op() {

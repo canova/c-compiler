@@ -100,7 +100,7 @@ impl CodegenFunction {
                 }
             }
         }
-        // FIXME: Currently we support only word variable size for opeatrions.
+        // FIXME: Currently we support only word variable size for operations.
         stack_size += op_stack_count * VarSize::Word.to_bytes();
 
         // Stack size has to be 16 byte aligned.
