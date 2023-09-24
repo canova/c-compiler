@@ -1,25 +1,36 @@
 pub mod asm;
+mod func;
 mod helpers;
 
 use self::helpers::*;
+pub use self::{asm::Assembly, func::*};
 use crate::parser::*;
-pub use asm::Assembly;
 
 #[derive(Debug, PartialEq)]
 pub struct ARMCodegen {
     asm: Assembly,
+    funcs: Vec<CodegenFunction>,
 }
 
 impl ARMCodegen {
     pub fn new() -> ARMCodegen {
         ARMCodegen {
             asm: Assembly::new(),
+            funcs: Vec::new(),
         }
     }
 
     pub fn generate(mut self, program: Program) -> Result<String, String> {
         self.generate_program(program)?;
         Ok(self.asm.to_string())
+    }
+
+    fn get_current_func(&self) -> Result<&CodegenFunction, String> {
+        self.funcs.last().ok_or("No function found".to_string())
+    }
+
+    fn get_current_func_mut(&mut self) -> Result<&mut CodegenFunction, String> {
+        self.funcs.last_mut().ok_or("No function found".to_string())
     }
 
     fn generate_program(&mut self, program: Program) -> Result<(), String> {
@@ -38,9 +49,26 @@ impl ARMCodegen {
         self.asm.push(format!(".globl _{}", func.name));
         self.asm.push(".p2align 2");
         self.asm.push(format!("_{}:", func.name));
+
+        self.funcs.push(CodegenFunction::new(&func.body)?);
+
+        // Push the stack in the function prologue.
+        self.asm.push(format!(
+            "sub sp, sp, #{}",
+            self.funcs.last().unwrap().stack.size
+        ));
         for stmt in func.body {
             self.generate_statement(stmt)?;
         }
+        // Pop the stack in the function epilogue.
+        self.asm.push(format!(
+            "add sp, sp, #{}",
+            self.funcs.last().unwrap().stack.size
+        ));
+
+        // TODO: Return 0 if there isn't a return statement.
+
+        self.funcs.pop();
         self.asm.push("ret");
         Ok(())
     }
@@ -53,6 +81,30 @@ impl ARMCodegen {
                 }
                 expression => self.generate_expr(&expression)?,
             },
+            Statement::VarDecl(var_decl) => {
+                if let Some(expr) = var_decl.initializer {
+                    self.generate_expr(&expr)?;
+                } else {
+                    self.asm.push("mov w0, #0");
+                }
+
+                let codegen_var = self
+                    .get_current_func()?
+                    .stack
+                    .var_map
+                    .get(&var_decl.name)
+                    .ok_or(format!("Variable '{}' not found", var_decl.name))?;
+
+                match codegen_var {
+                    CodegenVar::StackVar(stack_var) => {
+                        self.asm
+                            .push(format!("str w0, [sp, #{}]", stack_var.offset));
+                    }
+                }
+            }
+            Statement::Expression(expr) => {
+                self.generate_expr(&expr)?;
+            }
         }
         Ok(())
     }
@@ -63,6 +115,10 @@ impl ARMCodegen {
                 self.asm.push(format!("mov w0, #{}", int));
                 Ok(())
             }
+            Expr::Constant(_) => {
+                // TODO: Support the other types later.
+                todo!("Only integer constants are supported")
+            }
             Expr::UnaryOp(unary_op, expr) => {
                 self.generate_unary_op(unary_op, expr)?;
                 Ok(())
@@ -71,9 +127,39 @@ impl ARMCodegen {
                 self.generate_binary_op(binary_op, lhs, rhs)?;
                 Ok(())
             }
-            _ => {
-                // TODO: Support other types.
-                Err(format!("Unexpected expression {:?}", expr))
+            Expr::Var(var_name) => {
+                let codegen_var = self
+                    .get_current_func()?
+                    .stack
+                    .var_map
+                    .get(var_name)
+                    .ok_or(format!("Variable '{}' not found", var_name))?;
+
+                match codegen_var {
+                    CodegenVar::StackVar(stack_var) => {
+                        self.asm
+                            .push(format!("ldr w0, [sp, #{}]", stack_var.offset));
+                    }
+                }
+                Ok(())
+            }
+            Expr::Assignment(name, expr) => {
+                self.generate_expr(expr)?;
+
+                let codegen_var = self
+                    .get_current_func()?
+                    .stack
+                    .var_map
+                    .get(name)
+                    .ok_or(format!("Variable '{}' not found", name))?;
+
+                match codegen_var {
+                    CodegenVar::StackVar(stack_var) => {
+                        self.asm
+                            .push(format!("str w0, [sp, #{}]", stack_var.offset));
+                    }
+                }
+                Ok(())
             }
         }
     }
@@ -113,13 +199,21 @@ impl ARMCodegen {
             return Ok(());
         }
 
-        // It looks like we need to keep 16 byte alignment.
-        // https://stackoverflow.com/a/34504752/3582646
+        let func = self.get_current_func_mut()?;
+        let op_var = func
+            .stack
+            .var_map
+            .get(&format!("op_{}", func.op_stack_depth))
+            .unwrap();
+        func.op_stack_depth += 1;
+        let stack_offset = op_var.get_stack_offset()?;
+
         // We first push the value to the stack.
-        self.asm.push("stp x0, xzr, [sp, #-16]!");
+        self.asm.push(format!("str w0, [sp, #{}]", stack_offset));
         self.generate_expr(rhs)?;
-        // And then we pop it back to x1.
-        self.asm.push("ldp x1, xzr, [sp], #16");
+        // And then we pop it back to w1.
+        self.asm.push(format!("ldr w1, [sp, #{}]", stack_offset));
+        self.get_current_func_mut()?.op_stack_depth -= 1;
 
         // lhs is in w1, rhs is in w0.
         match binary_op {

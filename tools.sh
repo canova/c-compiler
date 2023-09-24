@@ -6,11 +6,12 @@ set -e
 OBJDIR="obj/"
 
 gcc_asm() {
-  echo "Generating assembly for $@"
+
   out_path="$OBJDIR$@"
   out_path="${out_path%.*}.s"
+  echo "Generating assembly for $@ to $out_path"
   mkdir -p $(dirname "$out_path")
-  gcc -S -O3 -fno-exceptions -fno-asynchronous-unwind-tables -fno-dwarf2-cfi-asm "$@" -o "$out_path"
+  gcc -S -O0 -fno-exceptions -fno-asynchronous-unwind-tables -fno-dwarf2-cfi-asm "$@" -o "$out_path"
   bat "$out_path"
 }
 

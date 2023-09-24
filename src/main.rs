@@ -39,9 +39,7 @@ fn main() {
     let parser = parser::Parser::new(token_stream);
     let program_ast = parser.parse().expect("Parsing phase has failed");
 
-    println!("AST output:\n{:#?}\n", program_ast);
     let codegen = codegen::ARMCodegen::new();
-
     let asm = codegen
         .generate(program_ast)
         .expect("Codegen phase has failed");

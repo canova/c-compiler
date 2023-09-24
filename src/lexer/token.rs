@@ -36,6 +36,7 @@ pub enum TokenKind {
     BitwiseXor,        // ^
     BitwiseShiftLeft,  // <<
     BitwiseShiftRight, // >>
+    Assignment,        // =
 }
 
 #[derive(Debug, Clone, PartialEq)]

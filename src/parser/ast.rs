@@ -2,9 +2,16 @@
 ///
 /// Current AST definition:
 /// program = Program(function_declaration)
-/// function_declaration = Function(string, statement) //string is the function name
+/// function_declaration = Function(string, statement list) //string is the function name
+///
 /// statement = Return(exp)
-/// exp = BinOp(binary_operator, exp, exp)
+///           | Declare(string, exp option) //string is variable name
+///                                         //exp is optional initializer
+///           | Exp(exp)
+///
+/// exp = Assign(string, exp)
+///     | Var(string) //string is variable name
+///     | BinOp(binary_operator, exp, exp)
 ///     | UnOp(unary_operator, exp)
 ///     | Constant(int)
 ///
@@ -24,11 +31,53 @@ pub struct Function {
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
+    VarDecl(VarDecl),
     Return(Box<Expr>),
+    Expression(Box<Expr>),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct VarDecl {
+    pub name: String,
+    pub size: VarSize,
+    pub initializer: Option<Expr>,
+}
+
+impl VarDecl {
+    pub fn get_byte_size(&self) -> usize {
+        self.size.to_bytes()
+    }
+}
+
+// TODO: Only Word is supported at the moment, support others.
+#[allow(dead_code)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum VarSize {
+    /// 1 byte
+    Byte,
+    /// 4 bytes in ARM64
+    Word,
+    /// 8 bytes in ARM64
+    DoubleWord,
+    /// 16 bytes in ARM64
+    QuadWord,
+}
+
+impl VarSize {
+    pub fn to_bytes(self) -> usize {
+        match self {
+            VarSize::Byte => 1,
+            VarSize::Word => 4,
+            VarSize::DoubleWord => 8,
+            VarSize::QuadWord => 16,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Expr {
+    Assignment(String, Box<Expr>),
+    Var(String),
     Constant(Constant),
     UnaryOp(UnaryOp, Box<Expr>),
     BinaryOp(BinaryOp, Box<Expr>, Box<Expr>),

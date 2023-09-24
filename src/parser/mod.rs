@@ -1,8 +1,6 @@
 pub mod ast;
 mod helpers;
 
-use std::vec;
-
 use crate::lexer::{Keyword, Token, TokenKind, TokenStream};
 pub use ast::*;
 
@@ -97,6 +95,8 @@ impl Parser {
         let body = self.parse_statements()?;
         self.expect(TokenKind::RBrace)?;
 
+        // TODO: Assert zero or one return statements for each branch.
+
         Ok(Function {
             name: function_name,
             body,
@@ -113,14 +113,40 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<Statement, String> {
-        match self.next() {
-            Some(token) => match token.kind {
+        match self.peek() {
+            Some(token) => match &token.kind {
                 TokenKind::Keyword(Keyword::Return) => {
+                    // Advance the token stream.
+                    let _ = self.next();
                     let expr = self.parse_expr()?;
                     self.expect(TokenKind::Semicolon)?;
                     Ok(Statement::Return(Box::new(expr)))
                 }
-                other => Err(format!("Expected a statement, but got {:?}", other)),
+                TokenKind::Keyword(Keyword::Int) => {
+                    // Advance the token stream.
+                    let _ = self.next();
+                    let ident = self.expect_ident()?;
+                    let initializer = if self.peek_token_kind(TokenKind::Semicolon).is_ok() {
+                        None
+                    } else {
+                        self.expect(TokenKind::Assignment)?;
+                        let expr = self.parse_expr()?;
+                        Some(expr)
+                    };
+                    self.expect(TokenKind::Semicolon)?;
+                    Ok(Statement::VarDecl(VarDecl {
+                        name: ident,
+                        size: VarSize::Word,
+                        initializer,
+                    }))
+                }
+                _ => {
+                    // Let's see if it's an expression. If not, parse_expr will throw an error as
+                    // this is the last possible statement option. This has to be always at the end.
+                    let expr = self.parse_expr()?;
+                    self.expect(TokenKind::Semicolon)?;
+                    Ok(Statement::Expression(Box::new(expr)))
+                }
             },
             None => Err("Expected statement, but got EOF".to_string()),
         }
@@ -173,6 +199,17 @@ impl Parser {
         let token = self.next().ok_or("Expected atom, but got EOF")?;
         match token.kind {
             TokenKind::Integer(int_val) => Ok(Expr::Constant(Constant::Int(int_val))),
+            TokenKind::Identifier(ident) => {
+                if self.peek_token_kind(TokenKind::Assignment).is_ok() {
+                    // Assignment
+                    self.expect(TokenKind::Assignment)?;
+                    let expr = self.parse_expr()?;
+                    Ok(Expr::Assignment(ident, Box::new(expr)))
+                } else {
+                    // Variable
+                    Ok(Expr::Var(ident))
+                }
+            }
             TokenKind::LParen => {
                 let expr = self.parse_expr()?;
                 self.expect(TokenKind::RParen)?;
@@ -274,6 +311,14 @@ mod tests {
 
                 let parser = Parser::new(token_stream);
                 let program_ast = parser.parse();
+
+                if let Ok(program_ast) = program_ast {
+                    let codegen = crate::codegen::ARMCodegen::new();
+
+                    let asm = codegen.generate(program_ast);
+                    assert!(asm.is_err());
+                    return;
+                }
                 assert!(program_ast.is_err());
             }
         }

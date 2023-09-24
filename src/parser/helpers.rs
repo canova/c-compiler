@@ -1,5 +1,7 @@
-use crate::lexer::{Token, TokenKind};
-use crate::parser::{BinaryOp, Expr, OpAssociativity, UnaryOp};
+use crate::{
+    lexer::{Token, TokenKind},
+    parser::{BinaryOp, Expr, OpAssociativity, UnaryOp},
+};
 
 impl Token {
     #[allow(dead_code)]

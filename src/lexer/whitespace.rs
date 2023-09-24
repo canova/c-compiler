@@ -1,4 +1,4 @@
-use super::helpers::take_while;
+use crate::lexer::helpers::take_while;
 
 /// Skip past any whitespace characters or comments.
 pub fn skip(src: &str) -> usize {
