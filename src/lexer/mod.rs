@@ -43,7 +43,7 @@ impl<'a> Tokenizer<'a> {
 
     /// Get the next token from the input stream.
     fn next_token(&mut self) -> TokenizerResult<Option<Token>> {
-        self.skip_whitespace();
+        self.skip_whitespace()?;
 
         if self.remaining_source.is_empty() {
             Ok(None)
@@ -59,9 +59,10 @@ impl<'a> Tokenizer<'a> {
     }
 
     /// Skip all the whitespace and comments.
-    fn skip_whitespace(&mut self) {
-        let skipped = whitespace::skip(self.remaining_source);
+    fn skip_whitespace(&mut self) -> TokenizerResult<()> {
+        let skipped = whitespace::skip(self.remaining_source)?;
         self.chomp(skipped);
+        Ok(())
     }
 
     /// Try to lex a single token from the input stream.

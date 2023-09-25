@@ -13,4 +13,10 @@ pub enum TokenizerError {
 
     #[error("Unexpected EOF")]
     UnexpectedEOF,
+
+    #[error("Failed to parse a floating point number")]
+    FloatParseFailed(#[from] std::num::ParseFloatError),
+
+    #[error("Failed to parse an int number")]
+    IntParseFailed(#[from] std::num::ParseIntError),
 }

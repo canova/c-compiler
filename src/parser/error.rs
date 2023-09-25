@@ -4,7 +4,7 @@ use crate::lexer::{Keyword, TokenKind};
 
 #[derive(Error, Debug)]
 pub enum ParserError {
-    #[error("Expected token {0:?} but got {0:?}")]
+    #[error("Expected token {0:?} but got {1:?}")]
     UnexpectedToken(TokenKind, TokenKind),
     #[error("Expected token {0:?} but got EOF")]
     UnexpectedEOF(TokenKind),

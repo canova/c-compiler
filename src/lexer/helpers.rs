@@ -69,10 +69,10 @@ pub fn tokenize_integer(data: &str) -> TokenizerResult<(TokenKind, usize)> {
     })?;
 
     if seen_dot {
-        let n: f64 = decimal.parse().expect("Couldn't parse float");
+        let n: f64 = decimal.parse()?;
         Ok((TokenKind::Decimal(n), bytes_read))
     } else {
-        let n: i32 = decimal.parse().expect("Couldn't parse int");
+        let n: i32 = decimal.parse()?;
         Ok((TokenKind::Integer(n), bytes_read))
     }
 }
