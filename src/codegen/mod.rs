@@ -53,16 +53,14 @@ impl ARMCodegen {
         self.asm.push(".p2align 2");
         self.asm.push(format!("_{}:", func.name));
 
-        self.funcs.push(CodegenFunction::new(&func.body)?);
+        self.funcs.push(CodegenFunction::new(&func.body.items)?);
 
         // Push the stack in the function prologue.
         self.asm.push(format!(
             "sub sp, sp, #{}",
             self.funcs.last().unwrap().stack.size
         ));
-        for block_item in &func.body {
-            self.generate_block_item(block_item)?;
-        }
+        self.generate_block(&func.body)?;
         // Pop the stack in the function epilogue.
         self.asm.push(format!(
             "add sp, sp, #{}",
@@ -73,7 +71,7 @@ impl ARMCodegen {
             // If there is only one function, that means that it's the main function.
             // TODO: This is not the best way of checking if the main has no return.
             // We should improve this.
-            let function_has_return = block_has_return(&func.body);
+            let function_has_return = block_has_return(&func.body.items);
             if !function_has_return {
                 // If the main function doesn't have a return statement, we need to
                 // return 0 as per the C standard. But that's not the case for the other
@@ -129,6 +127,7 @@ impl ARMCodegen {
             Statement::Conditional(conditional) => {
                 self.generate_conditional(conditional)?;
             }
+            Statement::Block(block) => self.generate_block(block)?,
         }
         Ok(())
     }
@@ -369,6 +368,13 @@ impl ARMCodegen {
         }
 
         self.asm.push(format!("{}:", end_label));
+        Ok(())
+    }
+
+    fn generate_block(&mut self, block: &Block) -> CodegenResult<()> {
+        for block_item in &block.items {
+            self.generate_block_item(block_item)?;
+        }
         Ok(())
     }
 

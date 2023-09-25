@@ -90,9 +90,7 @@ impl Parser {
         // TODO: Implement the arguments.
         self.expect(TokenKind::RParen)?;
 
-        self.expect(TokenKind::LBrace)?;
-        let body = self.parse_block_items()?;
-        self.expect(TokenKind::RBrace)?;
+        let body = self.parse_block()?;
 
         // TODO: Assert zero or one return statements for each branch.
 
@@ -102,13 +100,16 @@ impl Parser {
         })
     }
 
-    fn parse_block_items(&mut self) -> ParserResult<Vec<BlockItem>> {
-        let mut block_items = vec![];
-        while self.peek_token_kind(TokenKind::RBrace).is_err() {
-            block_items.push(self.parse_block_item()?);
-        }
+    fn parse_block(&mut self) -> ParserResult<Block> {
+        let mut items = vec![];
 
-        Ok(block_items)
+        self.expect(TokenKind::LBrace)?;
+        while self.peek_token_kind(TokenKind::RBrace).is_err() {
+            items.push(self.parse_block_item()?);
+        }
+        self.expect(TokenKind::RBrace)?;
+
+        Ok(Block { items })
     }
     fn parse_block_item(&mut self) -> ParserResult<BlockItem> {
         match self.peek() {
@@ -148,6 +149,7 @@ impl Parser {
                     Ok(Statement::Return(Box::new(expr)))
                 }
                 TokenKind::Keyword(Keyword::If) => Ok(Statement::Conditional(self.parse_if()?)),
+                TokenKind::LBrace => Ok(Statement::Block(self.parse_block()?)),
                 _ => {
                     // Let's see if it's an expression. If not, parse_expr will throw an error as
                     // this is the last possible statement option. This has to be always at the end.
@@ -261,10 +263,7 @@ impl Parser {
         self.expect(TokenKind::RParen)?;
 
         let if_block = if self.peek_token_kind(TokenKind::LBrace).is_ok() {
-            self.expect(TokenKind::LBrace)?;
-            let items = self.parse_block_items()?;
-            self.expect(TokenKind::RBrace)?;
-            items
+            self.parse_block()?.items
         } else {
             vec![self.parse_block_item()?]
         };
@@ -276,10 +275,7 @@ impl Parser {
             // Advance the token stream.
             let _ = self.next();
             Some(if self.peek_token_kind(TokenKind::LBrace).is_ok() {
-                self.expect(TokenKind::LBrace)?;
-                let items = self.parse_block_items()?;
-                self.expect(TokenKind::RBrace)?;
-                items
+                self.parse_block()?.items
             } else {
                 vec![self.parse_block_item()?]
             })

@@ -123,6 +123,13 @@ impl CodegenFunction {
                             op_stack_count,
                         );
                     }
+                    Statement::Block(block) => {
+                        let (block_stack_size, block_op_stack_count) =
+                            CodegenFunction::get_stack_size(&block.items)?;
+                        max_branch_stack_size =
+                            std::cmp::max(block_stack_size, max_branch_stack_size);
+                        op_stack_count = std::cmp::max(block_op_stack_count, block_stack_size);
+                    }
                 },
             }
         }

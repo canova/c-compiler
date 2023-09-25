@@ -32,7 +32,12 @@ pub struct Program {
 #[derive(Debug, PartialEq)]
 pub struct Function {
     pub name: String,
-    pub body: Vec<BlockItem>,
+    pub body: Block,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Block {
+    pub items: Vec<BlockItem>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -43,6 +48,7 @@ pub enum BlockItem {
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
+    Block(Block),
     Return(Box<Expr>),
     Expression(Box<Expr>),
     Conditional(Conditional),
