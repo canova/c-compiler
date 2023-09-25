@@ -1,6 +1,6 @@
 mod codegen;
-mod lexer;
 mod parser;
+mod tokenizer;
 
 use clap::Parser;
 use std::{
@@ -31,7 +31,7 @@ fn main() {
         "int main() { return 1 || 2; }".into()
     };
 
-    let tokenizer = lexer::Tokenizer::new(&file_content);
+    let tokenizer = tokenizer::Tokenizer::new(&file_content);
     let token_stream = match tokenizer.tokenize() {
         Ok(tokens) => tokens,
         Err(err) => {

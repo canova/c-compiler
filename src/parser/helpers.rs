@@ -1,6 +1,6 @@
 use crate::{
-    lexer::{Token, TokenKind},
     parser::{error::ParserError, BinaryOp, Expr, OpAssociativity, ParserResult, UnaryOp},
+    tokenizer::{Token, TokenKind},
 };
 
 impl Token {

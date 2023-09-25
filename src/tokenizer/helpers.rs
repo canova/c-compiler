@@ -1,4 +1,4 @@
-use crate::lexer::{
+use crate::tokenizer::{
     error::TokenizerError,
     token::{Keyword, TokenKind},
     TokenizerResult,

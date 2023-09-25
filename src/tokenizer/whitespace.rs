@@ -1,4 +1,4 @@
-use crate::lexer::{helpers::take_while, TokenizerError, TokenizerResult};
+use crate::tokenizer::{helpers::take_while, TokenizerError, TokenizerResult};
 
 /// Skip past any whitespace characters or comments.
 pub fn skip(src: &str) -> TokenizerResult<usize> {

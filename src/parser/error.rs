@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::lexer::{Keyword, TokenKind};
+use crate::tokenizer::{Keyword, TokenKind};
 
 #[derive(Error, Debug)]
 pub enum ParserError {

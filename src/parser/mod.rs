@@ -2,7 +2,7 @@ pub mod ast;
 mod error;
 mod helpers;
 
-use crate::lexer::{Keyword, Token, TokenKind, TokenStream};
+use crate::tokenizer::{Keyword, Token, TokenKind, TokenStream};
 pub use ast::*;
 
 use self::error::ParserError;
@@ -298,7 +298,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lexer::{tests::ALLOWED_STAGES, Tokenizer};
+    use crate::tokenizer::{tests::ALLOWED_STAGES, Tokenizer};
 
     #[test]
     fn test_parser_valid_files() {
