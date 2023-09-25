@@ -262,31 +262,23 @@ impl Parser {
         let condition = self.parse_expr()?;
         self.expect(TokenKind::RParen)?;
 
-        let if_block = if self.peek_token_kind(TokenKind::LBrace).is_ok() {
-            self.parse_block()?.items
-        } else {
-            vec![self.parse_block_item()?]
-        };
+        let if_stmt = Box::new(self.parse_statement()?);
 
-        let else_block = if self
+        let else_stmt = if self
             .peek_token_kind(TokenKind::Keyword(Keyword::Else))
             .is_ok()
         {
-            // Advance the token stream.
+            // Advance the token stream for else keyword.
             let _ = self.next();
-            Some(if self.peek_token_kind(TokenKind::LBrace).is_ok() {
-                self.parse_block()?.items
-            } else {
-                vec![self.parse_block_item()?]
-            })
+            Some(Box::new(self.parse_statement()?))
         } else {
             None
         };
 
         Ok(Conditional {
             condition,
-            if_block,
-            else_block,
+            if_stmt,
+            else_stmt,
         })
     }
 }

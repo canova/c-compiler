@@ -20,31 +20,15 @@ pub fn block_has_return(block_items: &[BlockItem]) -> bool {
     for (idx, item) in block_items.iter().enumerate() {
         match item {
             BlockItem::Declaration(_) => {}
-            BlockItem::Statement(stmt) => match stmt {
-                Statement::Return(_) => {
-                    return_indexes.push(idx);
-                }
-                Statement::Conditional(ref cond) => {
-                    if !block_has_return(&cond.if_block)
-                        || !cond
-                            .else_block
-                            .as_ref()
-                            .map_or(true, |b| block_has_return(b))
-                    {
-                        branches_without_return.push(idx);
+            BlockItem::Statement(stmt) => {
+                if let Some(has_return) = stmt.has_return() {
+                    if has_return {
+                        return_indexes.push(idx);
                     } else {
-                        return_indexes.push(idx)
+                        branches_without_return.push(idx);
                     }
                 }
-                Statement::Block(block) => {
-                    if !block_has_return(&block.items) {
-                        branches_without_return.push(idx);
-                    } else {
-                        return_indexes.push(idx)
-                    }
-                }
-                Statement::Expression(_) => {}
-            },
+            }
         }
     }
 
@@ -56,4 +40,24 @@ pub fn block_has_return(block_items: &[BlockItem]) -> bool {
     }
 
     !return_indexes.is_empty()
+}
+
+impl Statement {
+    pub fn has_return(&self) -> Option<bool> {
+        match self {
+            Statement::Return(_) => Some(true),
+            Statement::Conditional(ref cond) => {
+                let if_has_return = cond.if_stmt.has_return().unwrap_or(false);
+                let else_has_return = cond
+                    .else_stmt
+                    .as_ref()
+                    .map_or(Some(true), |b| b.has_return())
+                    .unwrap_or(false);
+
+                Some(if_has_return && else_has_return)
+            }
+            Statement::Block(block) => Some(block_has_return(&block.items)),
+            Statement::Expression(_) => None,
+        }
+    }
 }

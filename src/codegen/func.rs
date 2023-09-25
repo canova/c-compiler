@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     codegen::{CodegenError, CodegenResult},
-    parser::ast::{BlockItem, Expr, Statement, VarSize},
+    parser::ast::{Block, BlockItem, Expr, Statement, VarSize},
 };
 
 #[derive(Debug, PartialEq)]
@@ -31,20 +31,21 @@ pub struct FuncStack {
 }
 
 impl CodegenFunction {
-    pub fn new(block_items: &Vec<BlockItem>) -> CodegenResult<CodegenFunction> {
+    pub fn new(block: &Block) -> CodegenResult<CodegenFunction> {
         Ok(CodegenFunction {
-            stack: CodegenFunction::get_func_stack(block_items)?,
+            stack: block.get_stack()?,
             op_stack_depth: 0,
         })
     }
+}
 
-    pub fn get_func_stack(block_items: &Vec<BlockItem>) -> CodegenResult<FuncStack> {
+impl Block {
+    pub fn get_stack(&self) -> CodegenResult<FuncStack> {
         let mut var_map = HashMap::new();
-        let (stack_size, op_stack_count) = Self::get_stack_size(block_items)?;
+        let (stack_size, op_stack_count) = self.get_stack_size()?;
         let mut stack_offset = stack_size;
 
-        for item in block_items {
-            #[allow(clippy::single_match)]
+        for item in &self.items {
             match item {
                 BlockItem::Declaration(var_decl) => {
                     if var_map.contains_key(&var_decl.name) {
@@ -61,7 +62,7 @@ impl CodegenFunction {
                         }),
                     );
                 }
-                _ => {}
+                BlockItem::Statement(_) => {}
             }
         }
 
@@ -83,54 +84,23 @@ impl CodegenFunction {
         })
     }
 
-    pub fn get_stack_size(block_items: &Vec<BlockItem>) -> CodegenResult<(usize, usize)> {
+    pub fn get_stack_size(&self) -> CodegenResult<(usize, usize)> {
         let mut stack_size = 0;
         let mut op_stack_count = 0;
         let mut max_branch_stack_size = 0;
 
-        for item in block_items {
+        for item in &self.items {
             match item {
                 BlockItem::Declaration(var_decl) => {
                     // Look at the variable declarations.
                     stack_size += var_decl.get_byte_size();
                 }
-                BlockItem::Statement(stmt) => match stmt {
-                    Statement::Expression(expr) | Statement::Return(expr) => {
-                        // Also look at the arithmetic operations that need to push to stack and
-                        // and find the largest tree node.
-                        let expr_stack_size = expr.get_stack_size()?;
-                        if expr_stack_size > op_stack_count {
-                            op_stack_count = expr_stack_size;
-                        }
-                    }
-                    Statement::Conditional(cond) => {
-                        // Look at the conditional statements.
-                        let (if_stack_size, if_op_stack_count) =
-                            Self::get_stack_size(&cond.if_block)?;
-                        let (else_stack_size, else_op_stack_count) =
-                            if let Some(else_block) = &cond.else_block {
-                                Self::get_stack_size(else_block)?
-                            } else {
-                                (0, 0)
-                            };
-
-                        max_branch_stack_size = std::cmp::max(
-                            std::cmp::max(if_stack_size, else_stack_size),
-                            max_branch_stack_size,
-                        );
-                        op_stack_count = std::cmp::max(
-                            std::cmp::max(if_op_stack_count, else_op_stack_count),
-                            op_stack_count,
-                        );
-                    }
-                    Statement::Block(block) => {
-                        let (block_stack_size, block_op_stack_count) =
-                            CodegenFunction::get_stack_size(&block.items)?;
-                        max_branch_stack_size =
-                            std::cmp::max(block_stack_size, max_branch_stack_size);
-                        op_stack_count = std::cmp::max(block_op_stack_count, block_stack_size);
-                    }
-                },
+                BlockItem::Statement(stmt) => {
+                    // Look at the statements.
+                    let (stmt_stack_size, stmt_op_stack_count) = stmt.get_stack_size()?;
+                    max_branch_stack_size = std::cmp::max(stmt_stack_size, max_branch_stack_size);
+                    op_stack_count = std::cmp::max(stmt_op_stack_count, op_stack_count);
+                }
             }
         }
         // FIXME: Currently we support only word variable size for operations.
@@ -141,6 +111,53 @@ impl CodegenFunction {
         if stack_size % 16 != 0 {
             stack_size += 16 - (stack_size % 16);
         }
+
+        Ok((stack_size, op_stack_count))
+    }
+}
+
+impl Statement {
+    pub fn get_stack_size(&self) -> CodegenResult<(usize, usize)> {
+        let mut op_stack_count = 0;
+        let mut max_branch_stack_size = 0;
+
+        match self {
+            Statement::Expression(expr) | Statement::Return(expr) => {
+                // Also look at the arithmetic operations that need to push to stack and
+                // and find the largest tree node.
+                let expr_stack_size = expr.get_stack_size()?;
+                if expr_stack_size > op_stack_count {
+                    op_stack_count = expr_stack_size;
+                }
+            }
+            Statement::Conditional(cond) => {
+                // Look at the conditional statements.
+                let (if_stack_size, if_op_stack_count) = cond.if_stmt.get_stack_size()?;
+                let (else_stack_size, else_op_stack_count) =
+                    if let Some(else_stmt) = &cond.else_stmt {
+                        else_stmt.get_stack_size()?
+                    } else {
+                        (0, 0)
+                    };
+
+                max_branch_stack_size = std::cmp::max(
+                    std::cmp::max(if_stack_size, else_stack_size),
+                    max_branch_stack_size,
+                );
+                op_stack_count = std::cmp::max(
+                    std::cmp::max(if_op_stack_count, else_op_stack_count),
+                    op_stack_count,
+                );
+            }
+            Statement::Block(block) => {
+                let (block_stack_size, block_op_stack_count) = block.get_stack_size()?;
+                max_branch_stack_size = std::cmp::max(block_stack_size, max_branch_stack_size);
+                op_stack_count = std::cmp::max(block_op_stack_count, block_stack_size);
+            }
+        }
+
+        // FIXME: Currently we support only word variable size for operations.
+        let stack_size = max_branch_stack_size + op_stack_count * VarSize::Word.to_bytes();
 
         Ok((stack_size, op_stack_count))
     }

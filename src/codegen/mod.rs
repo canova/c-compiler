@@ -53,7 +53,7 @@ impl ARMCodegen {
         self.asm.push(".p2align 2");
         self.asm.push(format!("_{}:", func.name));
 
-        self.funcs.push(CodegenFunction::new(&func.body.items)?);
+        self.funcs.push(CodegenFunction::new(&func.body)?);
 
         // Push the stack in the function prologue.
         self.asm.push(format!(
@@ -348,23 +348,19 @@ impl ARMCodegen {
         self.asm.push("cmp w0, #0");
         self.asm.push(format!(
             "beq {}",
-            if conditional.else_block.is_some() {
+            if conditional.else_stmt.is_some() {
                 &else_label
             } else {
                 &end_label
             }
         ));
 
-        for block_item in &conditional.if_block {
-            self.generate_block_item(block_item)?;
-        }
+        self.generate_statement(&conditional.if_stmt)?;
         self.asm.push(format!("b {}", end_label));
 
-        if let Some(else_block) = &conditional.else_block {
+        if let Some(else_stmt) = &conditional.else_stmt {
             self.asm.push(format!("{}:", else_label));
-            for block_item in else_block {
-                self.generate_block_item(block_item)?;
-            }
+            self.generate_statement(&else_stmt)?;
         }
 
         self.asm.push(format!("{}:", end_label));

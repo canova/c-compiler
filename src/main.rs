@@ -36,7 +36,7 @@ fn main() {
         fs::read_to_string(file_path).unwrap()
     } else {
         println!("No input file provided. Using a dummy program.\n");
-        "int main() { return 1 || 2; }".into()
+        "int main() { int a = 1; int b =3;  return a + b; }".into()
     };
 
     let tokenizer = tokenizer::Tokenizer::new(&file_content);

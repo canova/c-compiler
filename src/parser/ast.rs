@@ -105,8 +105,8 @@ pub enum Expr {
 #[derive(Debug, PartialEq)]
 pub struct Conditional {
     pub condition: Expr,
-    pub if_block: Vec<BlockItem>,
-    pub else_block: Option<Vec<BlockItem>>,
+    pub if_stmt: Box<Statement>,
+    pub else_stmt: Option<Box<Statement>>,
 }
 
 #[derive(Debug, PartialEq)]
