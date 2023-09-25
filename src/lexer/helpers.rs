@@ -1,7 +1,11 @@
-use super::token::{Keyword, TokenKind};
+use crate::lexer::{
+    error::TokenizerError,
+    token::{Keyword, TokenKind},
+    TokenizerResult,
+};
 
 /// Consume bytes while a predicate evaluates to true.
-pub fn take_while<F>(data: &str, mut pred: F) -> Result<(&str, usize), String>
+pub fn take_while<F>(data: &str, mut pred: F) -> TokenizerResult<(&str, usize)>
 where
     F: FnMut(char) -> bool,
 {
@@ -18,20 +22,18 @@ where
     }
 
     if current_index == 0 {
-        Err("No Matches".into())
+        Err(TokenizerError::NoMatches)
     } else {
         Ok((&data[..current_index], current_index))
     }
 }
 
 /// Consume an identifier from the input stream.
-pub fn tokenize_ident(data: &str) -> Result<(TokenKind, usize), String> {
+pub fn tokenize_ident(data: &str) -> TokenizerResult<(TokenKind, usize)> {
     // identifiers can't start with a number
     match data.chars().next() {
-        Some(ch) if ch.is_ascii_digit() => {
-            return Err("Identifiers can't start with a number".into())
-        }
-        None => return Err("Unexpected EOF".into()),
+        Some(ch) if ch.is_ascii_digit() => return Err(TokenizerError::IdentifierStartsWithNumber),
+        None => return Err(TokenizerError::UnexpectedEOF),
         _ => {}
     }
 
@@ -48,7 +50,7 @@ pub fn tokenize_ident(data: &str) -> Result<(TokenKind, usize), String> {
 }
 
 /// Tokenize an integer or a float.
-pub fn tokenize_integer(data: &str) -> Result<(TokenKind, usize), String> {
+pub fn tokenize_integer(data: &str) -> TokenizerResult<(TokenKind, usize)> {
     let mut seen_dot = false;
 
     let (decimal, bytes_read) = take_while(data, |c| {

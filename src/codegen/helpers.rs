@@ -12,7 +12,7 @@ pub fn unique_label() -> String {
 }
 
 // TODO: Create a new struct for Block and move this to its method.
-pub fn block_has_return(block_items: &Vec<BlockItem>) -> Result<bool, String> {
+pub fn block_has_return(block_items: &[BlockItem]) -> bool {
     let mut return_indexes = vec![];
     let mut branches_without_return = vec![];
 
@@ -24,11 +24,11 @@ pub fn block_has_return(block_items: &Vec<BlockItem>) -> Result<bool, String> {
                     return_indexes.push(idx);
                 }
                 Statement::Conditional(ref cond) => {
-                    if !block_has_return(&cond.if_block)?
+                    if !block_has_return(&cond.if_block)
                         || !cond
                             .else_block
                             .as_ref()
-                            .map_or(true, |b| block_has_return(b).unwrap())
+                            .map_or(true, |b| block_has_return(b))
                     {
                         branches_without_return.push(idx);
                     } else {
@@ -47,5 +47,5 @@ pub fn block_has_return(block_items: &Vec<BlockItem>) -> Result<bool, String> {
         }
     }
 
-    Ok(!return_indexes.is_empty())
+    !return_indexes.is_empty()
 }

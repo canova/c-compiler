@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::parser::ast::{BlockItem, Expr, Statement, VarSize};
+use crate::{
+    codegen::{CodegenError, CodegenResult},
+    parser::ast::{BlockItem, Expr, Statement, VarSize},
+};
 
 #[derive(Debug, PartialEq)]
 pub struct CodegenFunction {
@@ -28,14 +31,14 @@ pub struct FuncStack {
 }
 
 impl CodegenFunction {
-    pub fn new(block_items: &Vec<BlockItem>) -> Result<CodegenFunction, String> {
+    pub fn new(block_items: &Vec<BlockItem>) -> CodegenResult<CodegenFunction> {
         Ok(CodegenFunction {
             stack: CodegenFunction::get_func_stack(block_items)?,
             op_stack_depth: 0,
         })
     }
 
-    pub fn get_func_stack(block_items: &Vec<BlockItem>) -> Result<FuncStack, String> {
+    pub fn get_func_stack(block_items: &Vec<BlockItem>) -> CodegenResult<FuncStack> {
         let mut var_map = HashMap::new();
         let (stack_size, op_stack_count) = Self::get_stack_size(block_items)?;
         let mut stack_offset = stack_size;
@@ -45,7 +48,7 @@ impl CodegenFunction {
             match item {
                 BlockItem::Declaration(var_decl) => {
                     if var_map.contains_key(&var_decl.name) {
-                        Err(format!("Variable '{}' is already declared", var_decl.name))?;
+                        return Err(CodegenError::VarAlreadyDeclared(var_decl.name.clone()));
                     }
 
                     let byte_size = var_decl.get_byte_size();
@@ -80,7 +83,7 @@ impl CodegenFunction {
         })
     }
 
-    pub fn get_stack_size(block_items: &Vec<BlockItem>) -> Result<(usize, usize), String> {
+    pub fn get_stack_size(block_items: &Vec<BlockItem>) -> CodegenResult<(usize, usize)> {
         let mut stack_size = 0;
         let mut op_stack_count = 0;
         let mut max_branch_stack_size = 0;
@@ -137,7 +140,7 @@ impl CodegenFunction {
 }
 
 impl Expr {
-    pub fn get_stack_size(&self) -> Result<usize, String> {
+    pub fn get_stack_size(&self) -> CodegenResult<usize> {
         match self {
             Expr::Assignment(_, expr) => Ok(expr.get_stack_size()?),
             Expr::UnaryOp(_, expr) => Ok(expr.get_stack_size()?),
@@ -154,7 +157,7 @@ impl Expr {
 }
 
 impl CodegenVar {
-    pub fn get_stack_offset(&self) -> Result<usize, String> {
+    pub fn get_stack_offset(&self) -> CodegenResult<usize> {
         match self {
             CodegenVar::StackVar(var) => Ok(var.offset),
         }

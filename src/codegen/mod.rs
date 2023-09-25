@@ -1,10 +1,13 @@
 pub mod asm;
+mod error;
 mod func;
 mod helpers;
 
-use self::helpers::*;
 pub use self::{asm::Assembly, func::*};
+use self::{error::CodegenError, helpers::*};
 use crate::parser::*;
+
+type CodegenResult<T> = Result<T, CodegenError>;
 
 #[derive(Debug, PartialEq)]
 pub struct ARMCodegen {
@@ -20,20 +23,20 @@ impl ARMCodegen {
         }
     }
 
-    pub fn generate(mut self, program: Program) -> Result<String, String> {
+    pub fn generate(mut self, program: Program) -> CodegenResult<String> {
         self.generate_program(program)?;
         Ok(self.asm.to_string())
     }
 
-    fn get_current_func(&self) -> Result<&CodegenFunction, String> {
-        self.funcs.last().ok_or("No function found".to_string())
+    fn get_current_func(&self) -> CodegenResult<&CodegenFunction> {
+        self.funcs.last().ok_or(CodegenError::NoFunctionFound)
     }
 
-    fn get_current_func_mut(&mut self) -> Result<&mut CodegenFunction, String> {
-        self.funcs.last_mut().ok_or("No function found".to_string())
+    fn get_current_func_mut(&mut self) -> CodegenResult<&mut CodegenFunction> {
+        self.funcs.last_mut().ok_or(CodegenError::NoFunctionFound)
     }
 
-    fn generate_program(&mut self, program: Program) -> Result<(), String> {
+    fn generate_program(&mut self, program: Program) -> CodegenResult<()> {
         // Header.
         self.asm
             .push(".section __TEXT,__text,regular,pure_instructions");
@@ -45,7 +48,7 @@ impl ARMCodegen {
         Ok(())
     }
 
-    fn generate_function(&mut self, func: Function) -> Result<(), String> {
+    fn generate_function(&mut self, func: Function) -> CodegenResult<()> {
         self.asm.push(format!(".globl _{}", func.name));
         self.asm.push(".p2align 2");
         self.asm.push(format!("_{}:", func.name));
@@ -70,7 +73,7 @@ impl ARMCodegen {
             // If there is only one function, that means that it's the main function.
             // TODO: This is not the best way of checking if the main has no return.
             // We should improve this.
-            let function_has_return = block_has_return(&func.body)?;
+            let function_has_return = block_has_return(&func.body);
             if !function_has_return {
                 // If the main function doesn't have a return statement, we need to
                 // return 0 as per the C standard. But that's not the case for the other
@@ -84,12 +87,12 @@ impl ARMCodegen {
         Ok(())
     }
 
-    fn generate_block_item(&mut self, block_item: &BlockItem) -> Result<(), String> {
+    fn generate_block_item(&mut self, block_item: &BlockItem) -> CodegenResult<()> {
         match block_item {
             BlockItem::Statement(stmt) => self.generate_statement(stmt)?,
             BlockItem::Declaration(var_decl) => {
                 if let Some(expr) = &var_decl.initializer {
-                    self.generate_expr(&expr)?;
+                    self.generate_expr(expr)?;
                 } else {
                     self.asm.push("mov w0, #0");
                 }
@@ -99,7 +102,7 @@ impl ARMCodegen {
                     .stack
                     .var_map
                     .get(&var_decl.name)
-                    .ok_or(format!("Variable '{}' not found", var_decl.name))?;
+                    .ok_or(CodegenError::VarNotFound(var_decl.name.clone()))?;
 
                 match codegen_var {
                     CodegenVar::StackVar(stack_var) => {
@@ -112,16 +115,16 @@ impl ARMCodegen {
         Ok(())
     }
 
-    fn generate_statement(&mut self, stmt: &Statement) -> Result<(), String> {
+    fn generate_statement(&mut self, stmt: &Statement) -> CodegenResult<()> {
         match stmt {
             Statement::Return(expr) => match expr.as_ref() {
                 Expr::Constant(Constant::Int(int)) => {
                     self.asm.push(format!("mov w0, #{}", int));
                 }
-                expression => self.generate_expr(&expression)?,
+                expression => self.generate_expr(expression)?,
             },
             Statement::Expression(expr) => {
-                self.generate_expr(&expr)?;
+                self.generate_expr(expr)?;
             }
             Statement::Conditional(conditional) => {
                 self.generate_conditional(conditional)?;
@@ -130,7 +133,7 @@ impl ARMCodegen {
         Ok(())
     }
 
-    fn generate_expr(&mut self, expr: &Expr) -> Result<(), String> {
+    fn generate_expr(&mut self, expr: &Expr) -> CodegenResult<()> {
         match expr {
             Expr::Constant(Constant::Int(int)) => {
                 self.asm.push(format!("mov w0, #{}", int));
@@ -154,7 +157,7 @@ impl ARMCodegen {
                     .stack
                     .var_map
                     .get(var_name)
-                    .ok_or(format!("Variable '{}' not found", var_name))?;
+                    .ok_or(CodegenError::VarNotFound(var_name.clone()))?;
 
                 match codegen_var {
                     CodegenVar::StackVar(stack_var) => {
@@ -172,7 +175,7 @@ impl ARMCodegen {
                     .stack
                     .var_map
                     .get(name)
-                    .ok_or(format!("Variable '{}' not found", name))?;
+                    .ok_or(CodegenError::VarNotFound(name.clone()))?;
 
                 match codegen_var {
                     CodegenVar::StackVar(stack_var) => {
@@ -185,7 +188,7 @@ impl ARMCodegen {
         }
     }
 
-    fn generate_unary_op(&mut self, unary_op: &UnaryOp, expr: &Expr) -> Result<(), String> {
+    fn generate_unary_op(&mut self, unary_op: &UnaryOp, expr: &Expr) -> CodegenResult<()> {
         self.generate_expr(expr)?;
 
         match unary_op {
@@ -209,7 +212,7 @@ impl ARMCodegen {
         binary_op: &BinaryOp,
         lhs: &Expr,
         rhs: &Expr,
-    ) -> Result<(), String> {
+    ) -> CodegenResult<()> {
         self.generate_expr(lhs)?;
 
         if binary_op.is_short_circuiting_op() {
@@ -304,7 +307,7 @@ impl ARMCodegen {
         &mut self,
         binary_op: &BinaryOp,
         rhs: &Expr,
-    ) -> Result<(), String> {
+    ) -> CodegenResult<()> {
         let end_label = unique_label();
 
         match binary_op {
@@ -330,11 +333,11 @@ impl ARMCodegen {
                 self.asm.push(format!("{}:", end_label));
                 Ok(())
             }
-            _ => Err(format!("Unexpected binary operator {:?}", binary_op)),
+            other => Err(CodegenError::UnexpectedBinaryOp(*other)),
         }
     }
 
-    fn generate_conditional(&mut self, conditional: &Conditional) -> Result<(), String> {
+    fn generate_conditional(&mut self, conditional: &Conditional) -> CodegenResult<()> {
         let end_label = unique_label();
         let else_label = unique_label();
 

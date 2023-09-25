@@ -117,7 +117,7 @@ pub enum UnaryOp {
     BitwiseComplement,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum BinaryOp {
     Addition,
     Subtraction,

@@ -1,8 +1,13 @@
 pub mod ast;
+mod error;
 mod helpers;
 
 use crate::lexer::{Keyword, Token, TokenKind, TokenStream};
 pub use ast::*;
+
+use self::error::ParserError;
+
+type ParserResult<T> = Result<T, ParserError>;
 
 pub struct Parser {
     token_stream: TokenStream,
@@ -13,7 +18,7 @@ impl Parser {
         Parser { token_stream }
     }
 
-    pub fn parse(mut self) -> Result<Program, String> {
+    pub fn parse(mut self) -> ParserResult<Program> {
         self.parse_program()
     }
 }
@@ -27,62 +32,56 @@ impl Parser {
         self.token_stream.tokens.peek()
     }
 
-    fn peek_token_kind(&mut self, expected: TokenKind) -> Result<&Token, String> {
+    fn peek_token_kind(&mut self, expected: TokenKind) -> ParserResult<&Token> {
         match self.peek() {
             Some(token) if token.kind == expected => Ok(token),
-            Some(other) => Err(format!("Expected token {:?} but got {:?}", expected, other)),
-            None => Err(format!("Expected token {:?} but got EOF", expected)),
+            Some(other) => Err(ParserError::UnexpectedToken(expected, other.kind.clone())),
+            None => Err(ParserError::UnexpectedEOF(expected)),
         }
     }
 
-    fn expect(&mut self, expected: TokenKind) -> Result<Token, String> {
+    fn expect(&mut self, expected: TokenKind) -> ParserResult<Token> {
         match self.next() {
             Some(token) if token.kind == expected => Ok(token),
-            Some(token) => Err(format!(
-                "Expected token {:?}, but got {:?}",
-                expected, token
-            )),
-            None => Err(format!("Expected token {:?}, but got EOF", expected)),
+            Some(token) => Err(ParserError::UnexpectedToken(expected, token.kind)),
+            None => Err(ParserError::UnexpectedEOF(expected)),
         }
     }
 
-    fn expect_keyword(&mut self, expected: Keyword) -> Result<Token, String> {
+    fn expect_keyword(&mut self, expected: Keyword) -> ParserResult<Token> {
         match self.next() {
             Some(token) if token.kind == TokenKind::Keyword(expected.clone()) => Ok(token),
-            Some(token) => Err(format!(
-                "Expected keyword {:?}, but got {:?}",
-                expected, token
-            )),
-            None => Err(format!("Expected keyword {:?}, but got EOF", expected)),
+            Some(token) => Err(ParserError::UnexpectedTokenForKeyword(expected, token.kind)),
+            None => Err(ParserError::UnexpectedEOFForKeyword(expected)),
         }
     }
 
-    fn expect_ident(&mut self) -> Result<String, String> {
+    fn expect_ident(&mut self) -> ParserResult<String> {
         match self.next() {
             Some(token) => match token.kind {
                 TokenKind::Identifier(ident) => Ok(ident),
-                _ => Err(format!("Expected identifier, but got {:?}", token)),
+                _ => Err(ParserError::UnexpectedTokenForIdent(token.kind)),
             },
-            None => Err("Expected identifier, but got EOF".to_string()),
+            None => Err(ParserError::UnexpectedEOFForIdent),
         }
     }
 }
 
 impl Parser {
-    fn parse_program(&mut self) -> Result<Program, String> {
+    fn parse_program(&mut self) -> ParserResult<Program> {
         let function = self.parse_function(Some("main"))?;
         Ok(Program { function })
     }
 
-    fn parse_function(&mut self, expected_name: Option<&str>) -> Result<Function, String> {
+    fn parse_function(&mut self, expected_name: Option<&str>) -> ParserResult<Function> {
         self.expect_keyword(Keyword::Int)?;
         let function_name = self.expect_ident()?;
 
         if let Some(expected_name) = expected_name {
             if function_name != expected_name {
-                return Err(format!(
-                    "Expected function name {:?}, but got {:?}",
-                    expected_name, function_name
+                return Err(ParserError::UnexpectedFunctionName(
+                    expected_name.to_string(),
+                    function_name,
                 ));
             }
         }
@@ -103,7 +102,7 @@ impl Parser {
         })
     }
 
-    fn parse_block_items(&mut self) -> Result<Vec<BlockItem>, String> {
+    fn parse_block_items(&mut self) -> ParserResult<Vec<BlockItem>> {
         let mut block_items = vec![];
         while self.peek_token_kind(TokenKind::RBrace).is_err() {
             block_items.push(self.parse_block_item()?);
@@ -111,7 +110,7 @@ impl Parser {
 
         Ok(block_items)
     }
-    fn parse_block_item(&mut self) -> Result<BlockItem, String> {
+    fn parse_block_item(&mut self) -> ParserResult<BlockItem> {
         match self.peek() {
             Some(token) => match &token.kind {
                 TokenKind::Keyword(Keyword::Int) => {
@@ -134,11 +133,11 @@ impl Parser {
                 }
                 _ => self.parse_statement().map(BlockItem::Statement),
             },
-            None => Err("Expected block item, but got EOF".to_string()),
+            None => Err(ParserError::UnexpectedEOFForBlockItem),
         }
     }
 
-    fn parse_statement(&mut self) -> Result<Statement, String> {
+    fn parse_statement(&mut self) -> ParserResult<Statement> {
         match self.peek() {
             Some(token) => match &token.kind {
                 TokenKind::Keyword(Keyword::Return) => {
@@ -157,18 +156,18 @@ impl Parser {
                     Ok(Statement::Expression(Box::new(expr)))
                 }
             },
-            None => Err("Expected statement, but got EOF".to_string()),
+            None => Err(ParserError::UnexpectedEOFForStatement),
         }
     }
 
-    fn parse_expr(&mut self) -> Result<Expr, String> {
+    fn parse_expr(&mut self) -> ParserResult<Expr> {
         self.parse_expr_with_min_precedence(1)
     }
 
     /// Parse an expression with an operator-precedence parser using precedence
     /// climbing method.
     /// https://en.wikipedia.org/wiki/Operator-precedence_parser#Precedence_climbing_method
-    fn parse_expr_with_min_precedence(&mut self, min_precedence: u8) -> Result<Expr, String> {
+    fn parse_expr_with_min_precedence(&mut self, min_precedence: u8) -> ParserResult<Expr> {
         let mut atom_lhs = self.parse_atom()?;
 
         loop {
@@ -204,8 +203,8 @@ impl Parser {
         Ok(atom_lhs)
     }
 
-    fn parse_atom(&mut self) -> Result<Expr, String> {
-        let token = self.next().ok_or("Expected atom, but got EOF")?;
+    fn parse_atom(&mut self) -> ParserResult<Expr> {
+        let token = self.next().ok_or(ParserError::UnexpectedEOFForAtom)?;
         match token.kind {
             TokenKind::Integer(int_val) => Ok(Expr::Constant(Constant::Int(int_val))),
             TokenKind::Identifier(ident) => {
@@ -230,15 +229,12 @@ impl Parser {
                 op.get_unary_op(expr)
             }
             // Warning for binary ops
-            other if other.is_binary_op() => Err(format!(
-                "Expected atom, but got a binary operator {:?}",
-                other
-            )),
-            other => Err(format!("Expected atom, but got {:?}", other)),
+            other if other.is_binary_op() => Err(ParserError::UnexpectedBinOpForAtom(other)),
+            other => Err(ParserError::UnexpectedTokenForAtom(other)),
         }
     }
 
-    fn parse_if(&mut self) -> Result<Conditional, String> {
+    fn parse_if(&mut self) -> ParserResult<Conditional> {
         self.expect(TokenKind::Keyword(Keyword::If))?;
         self.expect(TokenKind::LParen)?;
         let condition = self.parse_expr()?;

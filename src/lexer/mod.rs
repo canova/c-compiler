@@ -1,11 +1,15 @@
+mod error;
 mod helpers;
 mod whitespace;
 
 pub mod token;
+use self::error::TokenizerError;
 use self::helpers::*;
 pub use self::token::*;
 use std::iter::Peekable;
 use std::vec::IntoIter;
+
+type TokenizerResult<T> = Result<T, TokenizerError>;
 
 #[derive(Debug)]
 pub struct TokenStream {
@@ -27,7 +31,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     /// Tokenize the entire input stream and consume the tokenizer.
-    pub fn tokenize(mut self) -> Result<TokenStream, String> {
+    pub fn tokenize(mut self) -> TokenizerResult<TokenStream> {
         let mut tokens = Vec::new();
         while let Some(token) = self.next_token()? {
             tokens.push(token);
@@ -38,7 +42,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     /// Get the next token from the input stream.
-    fn next_token(&mut self) -> Result<Option<Token>, String> {
+    fn next_token(&mut self) -> TokenizerResult<Option<Token>> {
         self.skip_whitespace();
 
         if self.remaining_source.is_empty() {
@@ -61,13 +65,10 @@ impl<'a> Tokenizer<'a> {
     }
 
     /// Try to lex a single token from the input stream.
-    pub fn tokenize_single_token(&mut self) -> Result<TokenKind, String> {
+    pub fn tokenize_single_token(&mut self) -> TokenizerResult<TokenKind> {
         let data = self.remaining_source;
         let mut rem_chars = data.chars().peekable();
-        let next = match rem_chars.next() {
-            Some(c) => c,
-            None => return Err("Unexpected EOF".into()),
-        };
+        let next = rem_chars.next().ok_or(TokenizerError::UnexpectedEOF)?;
 
         let (tok, length) = match next {
             '(' => (TokenKind::LParen, 1),
@@ -101,7 +102,7 @@ impl<'a> Tokenizer<'a> {
             '=' => (TokenKind::Assignment, 1),
             '0'..='9' => tokenize_integer(data)?,
             c @ '_' | c if c.is_alphabetic() => tokenize_ident(data)?,
-            other => return Err(format!("Unknown character: {:?}", other)),
+            other => return Err(TokenizerError::UnknownCharacter(other)),
         };
 
         self.chomp(length);

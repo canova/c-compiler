@@ -1,6 +1,6 @@
 use crate::{
     lexer::{Token, TokenKind},
-    parser::{BinaryOp, Expr, OpAssociativity, UnaryOp},
+    parser::{error::ParserError, BinaryOp, Expr, OpAssociativity, ParserResult, UnaryOp},
 };
 
 impl Token {
@@ -14,15 +14,15 @@ impl Token {
     }
 
     #[allow(dead_code)]
-    pub fn get_unary_op(&self, expr: Expr) -> Result<Expr, String> {
+    pub fn get_unary_op(&self, expr: Expr) -> ParserResult<Expr> {
         self.kind.get_unary_op(expr)
     }
 
-    pub fn get_bin_op(&self, lhs: Expr, rhs: Expr) -> Result<Expr, String> {
+    pub fn get_bin_op(&self, lhs: Expr, rhs: Expr) -> ParserResult<Expr> {
         self.kind.get_bin_op(lhs, rhs)
     }
 
-    pub fn get_op_prec_assoc(&self) -> Result<(u8, OpAssociativity), String> {
+    pub fn get_op_prec_assoc(&self) -> ParserResult<(u8, OpAssociativity)> {
         self.kind.get_op_prec_assoc()
     }
 }
@@ -59,21 +59,21 @@ impl TokenKind {
         )
     }
 
-    pub fn get_unary_op(&self, expr: Expr) -> Result<Expr, String> {
+    pub fn get_unary_op(&self, expr: Expr) -> ParserResult<Expr> {
         Ok(Expr::UnaryOp(
-            match &self {
+            match self {
                 TokenKind::Minus => UnaryOp::Negation,
                 TokenKind::LogicalNegation => UnaryOp::LogicalNegation,
                 TokenKind::BitwiseComplement => UnaryOp::BitwiseComplement,
-                other => return Err(format!("Expected unary operator, but got {:?}", other)),
+                other => return Err(ParserError::UnexpectedTokenForUnaryOp(other.clone())),
             },
             Box::new(expr),
         ))
     }
 
-    pub fn get_bin_op(&self, lhs: Expr, rhs: Expr) -> Result<Expr, String> {
+    pub fn get_bin_op(&self, lhs: Expr, rhs: Expr) -> ParserResult<Expr> {
         Ok(Expr::BinaryOp(
-            match &self {
+            match self {
                 TokenKind::Plus => BinaryOp::Addition,
                 TokenKind::Minus => BinaryOp::Subtraction,
                 TokenKind::Asterisk => BinaryOp::Multiplication,
@@ -92,7 +92,7 @@ impl TokenKind {
                 TokenKind::BitwiseXor => BinaryOp::BitwiseXor,
                 TokenKind::BitwiseShiftLeft => BinaryOp::BitwiseShiftLeft,
                 TokenKind::BitwiseShiftRight => BinaryOp::BitwiseShiftRight,
-                other => return Err(format!("Expected binary operator, but got {:?}", other)),
+                other => return Err(ParserError::UnexpectedTokenForBinaryOp(other.clone())),
             },
             Box::new(lhs),
             Box::new(rhs),
@@ -101,8 +101,8 @@ impl TokenKind {
 
     /// https://en.cppreference.com/w/c/language/operator_precedence
     /// TODO: Move this to a static constant.
-    pub fn get_op_prec_assoc(&self) -> Result<(u8, OpAssociativity), String> {
-        match &self {
+    pub fn get_op_prec_assoc(&self) -> ParserResult<(u8, OpAssociativity)> {
+        match self {
             TokenKind::Or => Ok((1, OpAssociativity::Left)),
             TokenKind::And => Ok((2, OpAssociativity::Left)),
             TokenKind::BitwiseOr => Ok((3, OpAssociativity::Left)),
@@ -123,7 +123,7 @@ impl TokenKind {
             TokenKind::LogicalNegation | TokenKind::BitwiseComplement => {
                 Ok((11, OpAssociativity::Right))
             }
-            other => Err(format!("Expected operator, but got {:?}", other)),
+            other => Err(ParserError::UnexpectedTokenForOp(other.clone())),
         }
     }
 }

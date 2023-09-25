@@ -3,10 +3,12 @@ mod lexer;
 mod parser;
 
 use clap::Parser;
-use std::fs;
-use std::io::{self, Write};
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::{
+    fs,
+    io::{self, Write},
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 /// A toy C compiler that outputs ARM64 assembly.
 #[derive(Parser, Debug)]
@@ -30,15 +32,31 @@ fn main() {
     };
 
     let tokenizer = lexer::Tokenizer::new(&file_content);
-    let token_stream = tokenizer.tokenize().expect("Tokenizing phase has failed");
+    let token_stream = match tokenizer.tokenize() {
+        Ok(tokens) => tokens,
+        Err(err) => {
+            eprintln!("Tokenizing phase has failed: {}", err);
+            std::process::exit(1);
+        }
+    };
 
     let parser = parser::Parser::new(token_stream);
-    let program_ast = parser.parse().expect("Parsing phase has failed");
+    let program_ast = match parser.parse() {
+        Ok(ast) => ast,
+        Err(err) => {
+            eprintln!("Parsing phase has failed: {}", err);
+            std::process::exit(1);
+        }
+    };
 
     let codegen = codegen::ARMCodegen::new();
-    let asm = codegen
-        .generate(program_ast)
-        .expect("Codegen phase has failed");
+    let asm = match codegen.generate(program_ast) {
+        Ok(asm) => asm,
+        Err(err) => {
+            eprintln!("Codegen phase has failed: {}", err);
+            std::process::exit(1);
+        }
+    };
 
     println!("Assembly output:");
     println!("{}\n", asm);
@@ -54,7 +72,7 @@ fn main() {
         asm_file.set_extension("s");
         println!("Writing assembly to file: {:?}", asm_file);
 
-        let _ = fs::create_dir_all(&asm_file.parent().unwrap());
+        let _ = fs::create_dir_all(asm_file.parent().unwrap());
         fs::write(&asm_file, asm).expect("Couldn't write to file");
         compile_asm(&asm_file);
     }
