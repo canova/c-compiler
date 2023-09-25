@@ -17,9 +17,17 @@ struct Args {
     /// C source file path to compile.
     file: Option<PathBuf>,
 
-    /// Whether to just do a dry run. Will just print the assembly to stdout.
+    /// Whether to just do a dry run. Will only print the assembly to stdout.
     #[arg(short, long, default_value_t = false)]
     dry_run: bool,
+
+    /// Whether to print the AST to stdout.
+    #[arg(short, long, default_value_t = false)]
+    ast: bool,
+
+    /// Whether to not print the assembly to stdout.
+    #[arg(short, long, default_value_t = false)]
+    no_asm: bool,
 }
 
 fn main() {
@@ -49,6 +57,10 @@ fn main() {
         }
     };
 
+    if args.ast {
+        println!("AST output:\n{:#?}\n", program_ast);
+    }
+
     let codegen = codegen::ARMCodegen::new();
     let asm = match codegen.generate(program_ast) {
         Ok(asm) => asm,
@@ -58,8 +70,9 @@ fn main() {
         }
     };
 
-    println!("Assembly output:");
-    println!("{}\n", asm);
+    if !args.no_asm {
+        println!("Assembly output:\n{}", asm);
+    }
 
     if args.dry_run {
         // No need to generate the assembly if we're just doing a dry run.
