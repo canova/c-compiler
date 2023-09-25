@@ -150,6 +150,12 @@ impl Expr {
                 let additional_stack = if op.is_short_circuiting_op() { 0 } else { 1 };
                 Ok(std::cmp::max(lhs_size, rhs_size) + additional_stack)
             }
+            Expr::TernaryConditional(ternary) => {
+                let cond_size = ternary.condition.get_stack_size()?;
+                let if_size = ternary.if_expr.get_stack_size()?;
+                let else_size = ternary.else_expr.get_stack_size()?;
+                Ok(std::cmp::max(std::cmp::max(cond_size, if_size), else_size))
+            }
             Expr::Var(_) => Ok(0),
             Expr::Constant(_) => Ok(0),
         }

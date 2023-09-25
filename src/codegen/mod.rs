@@ -185,6 +185,10 @@ impl ARMCodegen {
                 }
                 Ok(())
             }
+            Expr::TernaryConditional(ternary) => {
+                self.generate_ternary_cond_expr(ternary)?;
+                Ok(())
+            }
         }
     }
 
@@ -363,6 +367,24 @@ impl ARMCodegen {
                 self.generate_block_item(block_item)?;
             }
         }
+
+        self.asm.push(format!("{}:", end_label));
+        Ok(())
+    }
+
+    fn generate_ternary_cond_expr(&mut self, ternary: &TernaryConditional) -> CodegenResult<()> {
+        let end_label = unique_label();
+        let else_label = unique_label();
+
+        self.generate_expr(&ternary.condition)?;
+        self.asm.push("cmp w0, #0");
+        self.asm.push(format!("beq {}", else_label));
+
+        self.generate_expr(&ternary.if_expr)?;
+        self.asm.push(format!("b {}", end_label));
+
+        self.asm.push(format!("{}:", else_label));
+        self.generate_expr(&ternary.else_expr)?;
 
         self.asm.push(format!("{}:", end_label));
         Ok(())

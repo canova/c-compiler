@@ -196,6 +196,26 @@ impl Parser {
                     let atom_rhs = self.parse_expr_with_min_precedence(next_min_precedence)?;
                     atom_lhs = op.get_bin_op(atom_lhs, atom_rhs)?;
                 }
+                Some(ref cond) if cond.kind == TokenKind::QuestionMark => {
+                    // This is a ternary operator.
+                    let (precedence, _) = cond.get_op_prec_assoc()?;
+                    if precedence < min_precedence {
+                        break;
+                    }
+
+                    // Advance the token stream.
+                    let _ = self.next();
+
+                    let if_expr = self.parse_expr()?;
+                    self.expect(TokenKind::Colon)?;
+                    let else_expr = self.parse_expr()?;
+
+                    atom_lhs = Expr::TernaryConditional(TernaryConditional {
+                        condition: Box::new(atom_lhs),
+                        if_expr: Box::new(if_expr),
+                        else_expr: Box::new(else_expr),
+                    })
+                }
                 _ => break,
             }
         }

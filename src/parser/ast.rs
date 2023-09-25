@@ -93,6 +93,7 @@ pub enum Expr {
     Constant(Constant),
     UnaryOp(UnaryOp, Box<Expr>),
     BinaryOp(BinaryOp, Box<Expr>, Box<Expr>),
+    TernaryConditional(TernaryConditional),
 }
 
 #[derive(Debug, PartialEq)]
@@ -100,6 +101,13 @@ pub struct Conditional {
     pub condition: Expr,
     pub if_block: Vec<BlockItem>,
     pub else_block: Option<Vec<BlockItem>>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct TernaryConditional {
+    pub condition: Box<Expr>,
+    pub if_expr: Box<Expr>,
+    pub else_expr: Box<Expr>,
 }
 
 #[allow(dead_code)]

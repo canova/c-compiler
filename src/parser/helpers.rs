@@ -103,25 +103,26 @@ impl TokenKind {
     /// TODO: Move this to a static constant.
     pub fn get_op_prec_assoc(&self) -> ParserResult<(u8, OpAssociativity)> {
         match self {
-            TokenKind::Or => Ok((1, OpAssociativity::Left)),
-            TokenKind::And => Ok((2, OpAssociativity::Left)),
-            TokenKind::BitwiseOr => Ok((3, OpAssociativity::Left)),
-            TokenKind::BitwiseXor => Ok((4, OpAssociativity::Left)),
-            TokenKind::BitwiseAnd => Ok((5, OpAssociativity::Left)),
-            TokenKind::Equal | TokenKind::NotEqual => Ok((6, OpAssociativity::Left)),
+            TokenKind::QuestionMark => Ok((1, OpAssociativity::Right)),
+            TokenKind::Or => Ok((2, OpAssociativity::Left)),
+            TokenKind::And => Ok((3, OpAssociativity::Left)),
+            TokenKind::BitwiseOr => Ok((4, OpAssociativity::Left)),
+            TokenKind::BitwiseXor => Ok((5, OpAssociativity::Left)),
+            TokenKind::BitwiseAnd => Ok((6, OpAssociativity::Left)),
+            TokenKind::Equal | TokenKind::NotEqual => Ok((7, OpAssociativity::Left)),
             TokenKind::LessThan
             | TokenKind::LessThanOrEq
             | TokenKind::GreaterThan
-            | TokenKind::GreaterThanOrEq => Ok((7, OpAssociativity::Left)),
+            | TokenKind::GreaterThanOrEq => Ok((8, OpAssociativity::Left)),
             TokenKind::BitwiseShiftLeft | TokenKind::BitwiseShiftRight => {
-                Ok((8, OpAssociativity::Left))
+                Ok((9, OpAssociativity::Left))
             }
-            TokenKind::Plus | TokenKind::Minus => Ok((9, OpAssociativity::Left)),
+            TokenKind::Plus | TokenKind::Minus => Ok((10, OpAssociativity::Left)),
             TokenKind::Asterisk | TokenKind::Slash | TokenKind::Modulo => {
-                Ok((10, OpAssociativity::Left))
+                Ok((11, OpAssociativity::Left))
             }
             TokenKind::LogicalNegation | TokenKind::BitwiseComplement => {
-                Ok((11, OpAssociativity::Right))
+                Ok((12, OpAssociativity::Right))
             }
             other => Err(ParserError::UnexpectedTokenForOp(other.clone())),
         }
