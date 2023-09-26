@@ -42,7 +42,7 @@ impl CodegenFunction {
 impl Block {
     pub fn get_stack(&self) -> CodegenResult<FuncStack> {
         let mut var_map = HashMap::new();
-        let (stack_size, op_stack_count) = self.get_stack_size()?;
+        let (stack_size, op_stack_count) = self.get_stack_size_aligned()?;
         let mut stack_offset = stack_size;
 
         for item in &self.items {
@@ -84,6 +84,18 @@ impl Block {
         })
     }
 
+    pub fn get_stack_size_aligned(&self) -> CodegenResult<(usize, usize)> {
+        let (mut stack_size, op_stack_count) = self.get_stack_size()?;
+
+        // Stack size has to be 16 byte aligned.
+        // https://stackoverflow.com/a/34504752/3582646
+        if stack_size % 16 != 0 {
+            stack_size += 16 - (stack_size % 16);
+        }
+
+        Ok((stack_size, op_stack_count))
+    }
+
     pub fn get_stack_size(&self) -> CodegenResult<(usize, usize)> {
         let mut stack_size = 0;
         let mut op_stack_count = 0;
@@ -105,12 +117,6 @@ impl Block {
         }
         // FIXME: Currently we support only word variable size for operations.
         stack_size += max_branch_stack_size + op_stack_count * VarSize::Word.to_bytes();
-
-        // Stack size has to be 16 byte aligned.
-        // https://stackoverflow.com/a/34504752/3582646
-        if stack_size % 16 != 0 {
-            stack_size += 16 - (stack_size % 16);
-        }
 
         Ok((stack_size, op_stack_count))
     }
