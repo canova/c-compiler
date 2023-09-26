@@ -360,7 +360,7 @@ impl ARMCodegen {
 
         if let Some(else_stmt) = &conditional.else_stmt {
             self.asm.push(format!("{}:", else_label));
-            self.generate_statement(&else_stmt)?;
+            self.generate_statement(else_stmt)?;
         }
 
         self.asm.push(format!("{}:", end_label));
