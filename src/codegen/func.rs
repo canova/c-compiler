@@ -56,7 +56,7 @@ impl Block {
             stack.size += 16 - (stack.size % 16);
         }
 
-        // Invert all the offsets.
+        // Invert all the offsets, it seems to be the common convention.
         for var in stack.var_map.values_mut() {
             match var {
                 CodegenVar::StackVar(var) => {
