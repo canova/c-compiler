@@ -130,7 +130,7 @@ impl Statement {
                 stmt.func_stack(stack)?;
                 expr.func_stack(stack)?;
             }
-            Statement::Break | Statement::Continue => {}
+            Statement::Break | Statement::Continue | Statement::Null => {}
         }
 
         Ok(0)

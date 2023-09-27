@@ -56,6 +56,7 @@ pub enum Statement {
     DoWhile(Box<Statement>, Box<Expr>), // body, condition
     Break,
     Continue,
+    Null, // This is not the null keyword. It's a null statement, e.g `;`.
 }
 
 #[derive(Debug, PartialEq)]

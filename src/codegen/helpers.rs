@@ -64,7 +64,7 @@ impl Statement {
             Statement::Expression(_) => None,
             Statement::While(_, stmt) => stmt.has_return(),
             Statement::DoWhile(stmt, _) => stmt.has_return(),
-            Statement::Break | Statement::Continue => None,
+            Statement::Break | Statement::Continue | Statement::Null => None,
         }
     }
 }

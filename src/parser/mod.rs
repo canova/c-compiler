@@ -188,6 +188,11 @@ impl Parser {
                     self.expect(TokenKind::Semicolon)?;
                     Ok(Statement::Continue)
                 }
+                TokenKind::Semicolon => {
+                    // Advance the token stream.
+                    let _ = self.next();
+                    Ok(Statement::Null)
+                }
                 _ => {
                     // Let's see if it's an expression. If not, parse_expr will throw an error as
                     // this is the last possible statement option. This has to be always at the end.

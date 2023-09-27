@@ -146,6 +146,7 @@ impl ARMCodegen {
                     .ok_or(CodegenError::NoLoopFoundForContinue)?;
                 self.asm.push(format!("b {}", cur_loop.start_label));
             }
+            Statement::Null => {}
         }
         Ok(())
     }
