@@ -111,6 +111,7 @@ impl Parser {
 
         Ok(Block { items })
     }
+
     fn parse_block_item(&mut self) -> ParserResult<BlockItem> {
         match self.peek() {
             Some(token) => match &token.kind {
@@ -150,6 +151,43 @@ impl Parser {
                 }
                 TokenKind::Keyword(Keyword::If) => Ok(Statement::Conditional(self.parse_if()?)),
                 TokenKind::LBrace => Ok(Statement::Block(self.parse_block()?)),
+                TokenKind::Keyword(Keyword::While) => {
+                    // Advance the token stream.
+                    let _ = self.next();
+
+                    self.expect(TokenKind::LParen)?;
+                    let condition = Box::new(self.parse_expr()?);
+                    self.expect(TokenKind::RParen)?;
+                    let body = Box::new(self.parse_statement()?);
+
+                    Ok(Statement::While(condition, body))
+                }
+                TokenKind::Keyword(Keyword::Do) => {
+                    // Advance the token stream.
+                    let _ = self.next();
+
+                    let body = Box::new(self.parse_statement()?);
+                    self.expect_keyword(Keyword::While)?;
+                    self.expect(TokenKind::LParen)?;
+                    let condition = Box::new(self.parse_expr()?);
+                    self.expect(TokenKind::RParen)?;
+                    // Semicolon is mandatory here.
+                    self.expect(TokenKind::Semicolon)?;
+
+                    Ok(Statement::DoWhile(body, condition))
+                }
+                TokenKind::Keyword(Keyword::Break) => {
+                    // Advance the token stream.
+                    let _ = self.next();
+                    self.expect(TokenKind::Semicolon)?;
+                    Ok(Statement::Break)
+                }
+                TokenKind::Keyword(Keyword::Continue) => {
+                    // Advance the token stream.
+                    let _ = self.next();
+                    self.expect(TokenKind::Semicolon)?;
+                    Ok(Statement::Continue)
+                }
                 _ => {
                     // Let's see if it's an expression. If not, parse_expr will throw an error as
                     // this is the last possible statement option. This has to be always at the end.

@@ -9,6 +9,7 @@ use crate::{
 pub struct CodegenFunction {
     pub stack: FuncStack,
     pub op_stack_depth: usize,
+    pub loops: Vec<Loop>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -31,11 +32,18 @@ pub struct FuncStack {
     pub op_count: usize,
 }
 
+#[derive(Debug, PartialEq)]
+pub struct Loop {
+    pub start_label: String,
+    pub end_label: String,
+}
+
 impl CodegenFunction {
     pub fn new(block: &Block) -> CodegenResult<CodegenFunction> {
         Ok(CodegenFunction {
             stack: block.to_func_stack()?,
             op_stack_depth: 0,
+            loops: vec![],
         })
     }
 }
@@ -114,6 +122,15 @@ impl Statement {
             Statement::Block(block) => {
                 block.func_stack(stack)?;
             }
+            Statement::While(expr, stmt) => {
+                expr.func_stack(stack)?;
+                stmt.func_stack(stack)?;
+            }
+            Statement::DoWhile(stmt, expr) => {
+                stmt.func_stack(stack)?;
+                expr.func_stack(stack)?;
+            }
+            Statement::Break | Statement::Continue => {}
         }
 
         Ok(0)

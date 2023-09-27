@@ -52,6 +52,10 @@ pub enum Statement {
     Return(Box<Expr>),
     Expression(Box<Expr>),
     Conditional(Conditional),
+    While(Box<Expr>, Box<Statement>),   // condition, body
+    DoWhile(Box<Statement>, Box<Expr>), // body, condition
+    Break,
+    Continue,
 }
 
 #[derive(Debug, PartialEq)]

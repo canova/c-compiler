@@ -43,6 +43,10 @@ pub fn block_has_return(block_items: &[BlockItem]) -> bool {
 }
 
 impl Statement {
+    // The return type is not ideal but it does the job.
+    // Returning `None` means that the statement does not have a return.
+    // `Some(false)` means that the statement has has a branch without return.
+    // `Some(true)` means that it has a return.
     pub fn has_return(&self) -> Option<bool> {
         match self {
             Statement::Return(_) => Some(true),
@@ -58,6 +62,9 @@ impl Statement {
             }
             Statement::Block(block) => Some(block_has_return(&block.items)),
             Statement::Expression(_) => None,
+            Statement::While(_, stmt) => stmt.has_return(),
+            Statement::DoWhile(stmt, _) => stmt.has_return(),
+            Statement::Break | Statement::Continue => None,
         }
     }
 }

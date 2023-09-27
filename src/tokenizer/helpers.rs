@@ -29,7 +29,7 @@ where
 }
 
 /// Consume an identifier from the input stream.
-pub fn tokenize_ident(data: &str) -> TokenizerResult<(TokenKind, usize)> {
+pub fn tokenize_ident_or_keyword(data: &str) -> TokenizerResult<(TokenKind, usize)> {
     // identifiers can't start with a number
     match data.chars().next() {
         Some(ch) if ch.is_ascii_digit() => return Err(TokenizerError::IdentifierStartsWithNumber),
@@ -45,6 +45,10 @@ pub fn tokenize_ident(data: &str) -> TokenizerResult<(TokenKind, usize)> {
         "return" => Ok((TokenKind::Keyword(Keyword::Return), bytes_read)),
         "if" => Ok((TokenKind::Keyword(Keyword::If), bytes_read)),
         "else" => Ok((TokenKind::Keyword(Keyword::Else), bytes_read)),
+        "while" => Ok((TokenKind::Keyword(Keyword::While), bytes_read)),
+        "do" => Ok((TokenKind::Keyword(Keyword::Do), bytes_read)),
+        "continue" => Ok((TokenKind::Keyword(Keyword::Continue), bytes_read)),
+        "break" => Ok((TokenKind::Keyword(Keyword::Break), bytes_read)),
         _ => Ok((TokenKind::Identifier(got.to_string()), bytes_read)),
     }
 }

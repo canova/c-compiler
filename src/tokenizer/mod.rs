@@ -102,7 +102,7 @@ impl<'a> Tokenizer<'a> {
             '>' => (TokenKind::GreaterThan, 1),
             '=' => (TokenKind::Assignment, 1),
             '0'..='9' => tokenize_integer(data)?,
-            c @ '_' | c if c.is_alphabetic() => tokenize_ident(data)?,
+            c @ '_' | c if c.is_alphabetic() => tokenize_ident_or_keyword(data)?,
             other => return Err(TokenizerError::UnknownCharacter(other)),
         };
 

@@ -14,4 +14,9 @@ pub enum CodegenError {
 
     #[error("Unexpected binary operator {0:?}")]
     UnexpectedBinaryOp(BinaryOp),
+
+    #[error("'break' statement is not in a loop or switch statement")]
+    NoLoopFoundForBreak,
+    #[error("'continue' statement is not in a loop or switch statement")]
+    NoLoopFoundForContinue,
 }

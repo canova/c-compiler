@@ -23,10 +23,12 @@ It's still under heavy development. Things that are currently working:
 - `if`/`else` statements and ternary conditional expressions.
 - Compound Statements
 - Basic support for code blocks
+- `while` and `do-while` loops.
+- `break` and `continue`.
 
 ### Next steps
 
-- Implement loops
+- Implement the for loop
 - Better block support with variable shadowing
 - Implement static strings
 - Implement other data types.

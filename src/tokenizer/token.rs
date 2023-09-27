@@ -47,6 +47,10 @@ pub enum Keyword {
     Int,
     If,
     Else,
+    While,
+    Do,
+    Continue,
+    Break,
 }
 
 #[derive(Debug, PartialEq, Clone)]

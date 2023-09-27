@@ -128,6 +128,24 @@ impl ARMCodegen {
                 self.generate_conditional(conditional)?;
             }
             Statement::Block(block) => self.generate_block(block)?,
+            Statement::While(expr, stmt) => self.generate_while(expr, stmt)?,
+            Statement::DoWhile(stmt, expr) => self.generate_do_while(stmt, expr)?,
+            Statement::Break => {
+                let cur_loop = self
+                    .get_current_func()?
+                    .loops
+                    .last()
+                    .ok_or(CodegenError::NoLoopFoundForBreak)?;
+                self.asm.push(format!("b {}", cur_loop.end_label));
+            }
+            Statement::Continue => {
+                let cur_loop = self
+                    .get_current_func()?
+                    .loops
+                    .last()
+                    .ok_or(CodegenError::NoLoopFoundForContinue)?;
+                self.asm.push(format!("b {}", cur_loop.start_label));
+            }
         }
         Ok(())
     }
@@ -389,6 +407,44 @@ impl ARMCodegen {
         self.generate_expr(&ternary.else_expr)?;
 
         self.asm.push(format!("{}:", end_label));
+        Ok(())
+    }
+
+    fn generate_while(&mut self, expr: &Expr, stmt: &Statement) -> CodegenResult<()> {
+        let start_label = unique_label();
+        let end_label = unique_label();
+
+        // This is used for break/continue statements.
+        self.funcs.last_mut().unwrap().loops.push(Loop {
+            start_label: start_label.clone(),
+            end_label: end_label.clone(),
+        });
+
+        self.asm.push(format!("{}:", start_label));
+        self.generate_expr(expr)?;
+        self.asm.push("cmp w0, #0");
+        self.asm.push(format!("beq {}", end_label));
+
+        self.generate_statement(stmt)?;
+        self.asm.push(format!("b {}", start_label));
+        self.asm.push(format!("{}:", end_label));
+
+        self.funcs.last_mut().unwrap().loops.pop();
+        Ok(())
+    }
+
+    fn generate_do_while(&mut self, stmt: &Statement, expr: &Expr) -> CodegenResult<()> {
+        let start_label = unique_label();
+        // Even though we don't use the end label here, break statement might use it.
+        let end_label = unique_label();
+
+        self.asm.push(format!("{}:", start_label));
+        self.generate_statement(stmt)?;
+        self.generate_expr(expr)?;
+        self.asm.push("cmp w0, #0");
+        self.asm.push(format!("bne {}", start_label));
+        self.asm.push(format!("{}:", end_label));
+
         Ok(())
     }
 }
