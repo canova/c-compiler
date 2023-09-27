@@ -142,7 +142,7 @@ func:
 
 ## Register spilling
 
-TODO
+The action of storing the contents of registers into memory. This usually happens when we need to use that register for something else.
 
 ## Instructions
 
@@ -174,7 +174,53 @@ mov x1, x0, LSL #1 ; move the x0 to x1 and do a shift at the same time
 
 ### Conditionals and branching
 
-TODO
+- We can use `cmp` to compare two registers or a register and an immediate value.
+- `cmp` is an alias of `subs`.
+- After we are done executing the comparison instruction, all the appropriate flags are going to be set. Then we can use a branching instruction to have something like an if/else block or to have a loop.
+- Branching instruction is  `b`. We can add some condition codes/affixes at the end of it to make it look at the condition flags.
+- For example, `eq` means equal and `ne` means not equal. The `b` instruction becomes `beq` or `bne`. See the list below for the other condition codes.
+  - Also, ARM assembly lets us add a dot in between the instruction and affix like `b.eq`. But I think this is not really common as both `clang` and `gcc` produces the assembly without it.
+
+An example of branching:
+
+```asm
+  cmp w1, #0 ; we compare the w1 register value with zero (can also use wzr).
+  beq valueZero
+...
+valueZero:
+  <do-something>
+  b end ; you can also use the b instruction without any condition.
+end:
+```
+
+or:
+
+```asm
+  cmp w1, #0
+  bne notZero
+  ...
+notZero:
+  ...
+```
+
+There are a number or condition codes/affixes:
+
+- `eq`: Equal
+- `ne`: Not Equal
+- `cs` / `hs`: Carry Set / unsigned Higher or Same
+- `cc` / `lo`: Carry Clear / unsigned LOwer
+- `mi`: Negative (MInus)
+- `pl`: Positive or zero (PLus)
+- `vs`: Sign overflow (oVerflow Set)
+- `vc`: No sign overflow (oVerflow Clear)
+- `hi`: Unsigned HIgher
+- `ls`: Unsigned Lower or Same
+- `ge`: Signed Greater or Equal
+- `lt`: Signed Less Than
+- `gt`: Signed Greater Than
+- `le`: Signed Less or Equal
+- `al`: ALways (default)
+- `nv`: NeVer (doesn't really make sense to me but ok I guess..)
 
 #### Loops
 
