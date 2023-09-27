@@ -36,6 +36,18 @@
 - `x30` (LR): Procedure link register, used to return from subroutines.
 - `x31` (SP): Stack pointer or a zero register, depending on context.
 
+## Data types
+
+- Byte: 8 bits
+- Halfword: 16 bits
+- Word: 32 bits
+- Doubleword: 64 bits
+- Quadword: 128 bits
+
+### Data alignment
+
+The alignment of `sp` must be two times the size of a pointer. For AArch64/ARM64 it’s 16 bytes (quadword).
+
 ## Memory
 
 - Use `ldr` and `str` with multiple variations and addressing modes.
