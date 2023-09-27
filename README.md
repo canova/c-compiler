@@ -11,3 +11,25 @@ cargo run -- <file-path>
 ```
 
 You can also use the `--dry-run` argument to only print the assembly to stdout without saving/compiling the assembly to file.
+
+## Current status
+
+It's still under heavy development. Things that are currently working:
+
+- `int` variable type
+- Unary operators: `~`, `!`, `-`
+- Binary arithmetic operators
+- Local variables and the assignment operator
+- `if`/`else` statements and ternary conditional expressions.
+- Compound Statements
+- Basic support for code blocks
+
+### Next steps
+
+- Implement loops
+- Better block support with variable shadowing
+- Implement static strings
+- Implement other data types.
+- Implement functions and function calls
+- Implement global variables
+- And more...
