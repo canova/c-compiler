@@ -1,5 +1,12 @@
 # ARM64 assembly learnings
 
+## Recommended reads
+
+- [A Guide to ARM64 / AArch64 Assembly on Linux with Shellcodes and Cryptography](https://modexp.wordpress.com/2018/10/30/arm64-assembly/)
+- [Whirlwind Tour of ARM Assembly](https://www.coranac.com/tonc/text/asm.htm)
+- [Introduction to ARM Assembly Basics](https://azeria-labs.com/writing-arm-assembly-part-1/)
+- [ARMv8 A64 Quick Reference](./ARMv8_A64_Quick_Reference.pdf)
+
 ## Registers
 
 - There are 32 64-bit registers in total: `x0-x31`.
@@ -130,7 +137,15 @@ func:
   ...
 ```
 
-## Logical operators
+## Register spilling
+
+TODO
+
+## Instructions
+
+The following sections only mention the important instructions I used. They are just a subset of all the instructions and definitely not complete. I will expand these sections as I learn more.
+
+### Logical operations
 
 ```asm
 and x1, x2, x3
@@ -138,7 +153,11 @@ orr x1, x2, x3
 mvn X1, X2 ; NOT
 ```
 
-## Logical shift and rotation
+### Arithmetic operations
+
+TODO
+
+### Logical shift and rotation
 
 - `LSL` -> Logical shift to the left - multiples the number by 2.
 - `LSR` -> Logical shift to the right - dividing the number by 2
@@ -149,3 +168,9 @@ lsl x1, #1 ; shift left 1 time
 
 mov x1, x0, LSL #1 ; move the x0 to x1 and do a shift at the same time
 ```
+
+### Conditionals and branching
+
+TODO
+
+### Bit manipulations
