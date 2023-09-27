@@ -13,8 +13,7 @@
   - There are two addressing modes:
     - 64-bit: `x0`
     - 32-bit: `w0`
-
-  32 version only accesses the lower 32bits of the same register, so they are basically the same register.
+  - 32 version only accesses the lower 32bits of the same register, so they are basically the same register.
 - `sp`: stack pointer register.
 - `lr`: link register.
 - `pc`: program counter/instruction pointer.
@@ -23,9 +22,13 @@
   `mov w0, wzr` writes zero. Same as `mov w0, #0`.
 - TODO: Explain the registers for floats and vectors.
 - Move immediate value to a register:
-
   ```asm
   mov x0, #12 ; Can also be a hex: #0x1F
+  ```
+- Move value of one register to another
+  ```asm
+  mov x0, x1 ; Move the contents of x1 to x0. This is 64-bit operation
+  mov w4, w5 ; Move the contents of w5 to w4. This is 32-bit operation
   ```
 
 ### Calling convention
@@ -173,4 +176,22 @@ mov x1, x0, LSL #1 ; move the x0 to x1 and do a shift at the same time
 
 TODO
 
+#### Loops
+
+TODO
+
 ### Bit manipulations
+
+TODO
+
+## Functions
+
+TODO
+
+### Nested Functions
+
+TODO
+
+#### Trampolines
+
+TODO
