@@ -24,11 +24,14 @@
 ### Calling convention
 
 - `x0` to `x7`: Argument values passed to and results returned from a subroutine.
+  - The value of these registers may be freely modified by the called function (the callee) so the caller cannot assume anything about their content, even if they are not used in the parameter passing or for the returned value. This means that these registers are in practice caller-saved.
 - `x8` (XR): Indirect return value address.
 - `x9` to `x15`: Local variables, caller saved.
+  - Temporary registers for every function. No assumption can be made on their values upon returning from a function.
 - `x16` (IP0) and `x17` (IP1): Intra-Procedure-call scratch registers.
 - `x18` (PR): Platform register. Used for some operating-system-specific special purpose, or an additional caller-saved register.
 - `x19` to `x28`: Callee-saved registers.
+  - If used by a function, must have their values preserved and later restored upon returning to the caller.
 - `x29` (FP): Frame pointer.
 - `x30` (LR): Procedure link register, used to return from subroutines.
 - `x31` (SP): Stack pointer or a zero register, depending on context.
