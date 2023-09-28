@@ -439,6 +439,12 @@ impl ARMCodegen {
         // Even though we don't use the end label here, break statement might use it.
         let end_label = unique_label();
 
+        // This is used for break/continue statements.
+        self.funcs.last_mut().unwrap().loops.push(Loop {
+            start_label: start_label.clone(),
+            end_label: end_label.clone(),
+        });
+
         self.asm.push(format!("{}:", start_label));
         self.generate_statement(stmt)?;
         self.generate_expr(expr)?;
@@ -446,6 +452,7 @@ impl ARMCodegen {
         self.asm.push(format!("bne {}", start_label));
         self.asm.push(format!("{}:", end_label));
 
+        self.funcs.last_mut().unwrap().loops.pop();
         Ok(())
     }
 }
