@@ -224,7 +224,45 @@ There are a number or condition codes/affixes:
 
 #### Loops
 
-TODO
+Loops are pretty similar to conditionals and branching. We are going to use the same instructions to implement it.
+
+Here's a while loop:
+
+```arm
+start:
+  <compute the conditional expression and put it to w0>
+  cmp w0, #0
+  beq end
+  <loop block>
+  b start
+end:
+```
+
+Here's a `do...while` loop:
+
+```asm
+start:
+  <loop block>
+  <compute the conditional expression and put it to w0>
+  cmp w0, #0
+  bne start
+end:
+```
+
+Note that we don't use the `end` label in the last `do...while` loop. But that's still necessary for implementing the `break` statement.
+
+Also good to note that, I used `start` and `end` labels for the sake of simplicity. But in real world, we can't use these labels since there can be nested loops. We have to generate unique labels for each loop.
+
+##### `continue` and `break` statements
+
+They are pretty simple. They simply branch to either start or end labels. Here's an example:
+
+```asm
+b end ; implementation of break
+b start ; implementation of start.
+```
+
+But keep in mind that, while generating the assembly, you can't simply use `end` and `start` labels. Each loop creates a unique label. It means that we need to find the correct unique label to break/continue. You can keep a stack of the loops and push/pop them along the way.
 
 ### Bit manipulations
 
