@@ -151,14 +151,24 @@ The following sections only mention the important instructions I used. They are 
 ### Logical operations
 
 ```asm
-and x1, x2, x3
-orr x1, x2, x3
-mvn X1, X2 ; NOT
+and x1, x2, x3 ; x1 = x2 AND x3
+orr x1, x2, x3 ; x1 = x2 OR x3
+mvn X1, X2 ; NOT X2
 ```
 
 ### Arithmetic operations
 
-TODO
+```asm
+add x1, x2, x3      ; x1 = x2 + x3
+sub x1, x2, x3      ; x1 = x2 + x3
+mul x1, x2, x3      ; x1 = x2 * x3
+udiv x1, x2, x3     ; x1 = x2 / x3 (but it's unsigned!)
+sdiv x1, x2, x3     ; x1 = x2 / x3 (signed!)
+
+madd x1, x2, x3, x4 ; x1 = x2 * x3 + x4
+```
+
+Note that you can append most of these operations with "s" affix like `adds` and `subs`. They also set the flags after doing the operation, so you can check them.
 
 ### Logical shift and rotation
 
@@ -228,7 +238,7 @@ Loops are pretty similar to conditionals and branching. We are going to use the 
 
 Here's a while loop:
 
-```arm
+```asm
 start:
   <compute the conditional expression and put it to w0>
   cmp w0, #0
