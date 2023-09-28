@@ -232,6 +232,24 @@ There are a number or condition codes/affixes:
 - `al`: ALways (default)
 - `nv`: NeVer (doesn't really make sense to me but ok I guess..)
 
+#### Other conditional instructions
+
+Branch (`b`) is not the only instruction that can do conditional stuff. There are also others. For example `cset` is used to set the register to 1 if the condition is met.
+
+Examples:
+
+```asm
+cmp w0, #0   ; first we need to compare so we set the appropriate flags.
+cset w1, eq  ; then cset sets the w1 register only if w0 is equal to zero.
+
+
+ccmp w3, w4, #0, eq ; ccmp does a conditional compare. sets the value of the
+                    ; condition flags to the result of the comparison of w3 and w4
+                    ; if the condition is true, and an immediate value otherwise.
+```
+
+There are more conditional instructions but I won't get into the details of all of them for now.
+
 #### Loops
 
 Loops are pretty similar to conditionals and branching. We are going to use the same instructions to implement it.
