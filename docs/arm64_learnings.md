@@ -160,7 +160,7 @@ mvn X1, X2 ; NOT X2
 
 ```asm
 add x1, x2, x3      ; x1 = x2 + x3
-sub x1, x2, x3      ; x1 = x2 + x3
+sub x1, x2, x3      ; x1 = x2 - x3
 mul x1, x2, x3      ; x1 = x2 * x3
 udiv x1, x2, x3     ; x1 = x2 / x3 (but it's unsigned!)
 sdiv x1, x2, x3     ; x1 = x2 / x3 (signed!)
@@ -287,7 +287,7 @@ They are pretty simple. They simply branch to either start or end labels. Here's
 
 ```asm
 b end ; implementation of break
-b start ; implementation of start.
+b start ; implementation of continue.
 ```
 
 But keep in mind that, while generating the assembly, you can't simply use `end` and `start` labels. Each loop creates a unique label. It means that we need to find the correct unique label to break/continue. You can keep a stack of the loops and push/pop them along the way.

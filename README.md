@@ -34,4 +34,5 @@ It's still under heavy development. Things that are currently working:
 - Implement other data types.
 - Implement functions and function calls
 - Implement global variables
+- Split semantic analysis step from codegen step.
 - And more...
