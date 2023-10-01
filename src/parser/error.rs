@@ -40,4 +40,9 @@ pub enum ParserError {
     UnexpectedTokenForBinaryOp(TokenKind),
     #[error("Expected operator, but got {0:?}")]
     UnexpectedTokenForOp(TokenKind),
+
+    #[error("Expected declaration, but got EOF")]
+    UnexpectedEOFForDeclaration,
+    #[error("Expected declaration, but got {0:?}")]
+    UnexpectedTokenForDeclaration(TokenKind),
 }

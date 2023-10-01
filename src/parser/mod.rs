@@ -116,6 +116,20 @@ impl Parser {
         match self.peek() {
             Some(token) => match &token.kind {
                 TokenKind::Keyword(Keyword::Int) => {
+                    let decl = self.parse_declaration()?;
+                    self.expect(TokenKind::Semicolon)?;
+                    Ok(BlockItem::Declaration(decl))
+                }
+                _ => self.parse_statement().map(BlockItem::Statement),
+            },
+            None => Err(ParserError::UnexpectedEOFForBlockItem),
+        }
+    }
+
+    fn parse_declaration(&mut self) -> ParserResult<VarDecl> {
+        match self.peek() {
+            Some(token) => match &token.kind {
+                TokenKind::Keyword(Keyword::Int) => {
                     // Advance the token stream.
                     let _ = self.next();
                     let ident = self.expect_ident()?;
@@ -126,16 +140,17 @@ impl Parser {
                         let expr = self.parse_expr()?;
                         Some(expr)
                     };
-                    self.expect(TokenKind::Semicolon)?;
-                    Ok(BlockItem::Declaration(VarDecl {
+                    Ok(VarDecl {
                         name: ident,
                         size: VarSize::Word,
                         initializer,
-                    }))
+                    })
                 }
-                _ => self.parse_statement().map(BlockItem::Statement),
+                _ => Err(ParserError::UnexpectedTokenForDeclaration(
+                    token.kind.clone(),
+                )),
             },
-            None => Err(ParserError::UnexpectedEOFForBlockItem),
+            None => Err(ParserError::UnexpectedEOFForDeclaration),
         }
     }
 
@@ -176,6 +191,31 @@ impl Parser {
 
                     Ok(Statement::DoWhile(body, condition))
                 }
+                TokenKind::Keyword(Keyword::For) => {
+                    // Advance the token stream.
+                    let _ = self.next();
+
+                    self.expect(TokenKind::LParen)?;
+                    // Parse the initial expression
+                    let init = Box::new(self.parse_decl_or_expr()?);
+                    self.expect(TokenKind::Semicolon)?;
+                    // Parse the condition
+                    let condition = Box::new(self.parse_expr()?);
+                    self.expect(TokenKind::Semicolon)?;
+                    // Parse the increment expression
+                    let increment = Box::new(self.parse_expr()?);
+                    self.expect(TokenKind::RParen)?;
+
+                    // Parse the body
+                    let body = Box::new(self.parse_statement()?);
+
+                    Ok(Statement::For(For {
+                        init,
+                        condition,
+                        increment,
+                        body,
+                    }))
+                }
                 TokenKind::Keyword(Keyword::Break) => {
                     // Advance the token stream.
                     let _ = self.next();
@@ -206,6 +246,19 @@ impl Parser {
     }
 
     fn parse_expr(&mut self) -> ParserResult<Expr> {
+        if let Some(token) = self.peek() {
+            match token.kind {
+                TokenKind::Semicolon | TokenKind::RParen => {
+                    return Ok(Expr::Null);
+                }
+                _ => {}
+            }
+        }
+        // if self.peek_token_kind(TokenKind::Semicolon).is_ok() {
+        //     // This is a null expression.
+        //     return Ok(Expr::Null);
+        // }
+
         self.parse_expr_with_min_precedence(1)
     }
 
@@ -216,9 +269,12 @@ impl Parser {
         let mut atom_lhs = self.parse_atom()?;
 
         loop {
-            if self.peek_token_kind(TokenKind::Semicolon).is_ok() {
-                // Break if we see a semicolon. It will be consumed later.
-                break;
+            if let Some(token) = self.peek() {
+                match token.kind {
+                    // Break if we see a semicolon or close parenthesis. They will be consumed later.
+                    TokenKind::Semicolon | TokenKind::RParen => break,
+                    _ => {}
+                }
             }
 
             let next = self.peek().map(|f| (*f).clone());
@@ -323,6 +379,16 @@ impl Parser {
             if_stmt,
             else_stmt,
         })
+    }
+
+    fn parse_decl_or_expr(&mut self) -> ParserResult<DeclOrExpr> {
+        let decl = self.parse_declaration();
+        if let Ok(decl) = decl {
+            return Ok(DeclOrExpr::Declaration(decl));
+        }
+
+        let expr = self.parse_expr()?;
+        Ok(DeclOrExpr::Expression(expr))
     }
 }
 

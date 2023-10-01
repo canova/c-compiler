@@ -51,6 +51,7 @@ pub enum Keyword {
     Do,
     Continue,
     Break,
+    For,
 }
 
 #[derive(Debug, PartialEq, Clone)]

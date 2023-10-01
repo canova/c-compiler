@@ -89,25 +89,7 @@ impl ARMCodegen {
         match block_item {
             BlockItem::Statement(stmt) => self.generate_statement(stmt)?,
             BlockItem::Declaration(var_decl) => {
-                if let Some(expr) = &var_decl.initializer {
-                    self.generate_expr(expr)?;
-                } else {
-                    self.asm.push("mov w0, #0");
-                }
-
-                let codegen_var = self
-                    .get_current_func()?
-                    .stack
-                    .var_map
-                    .get(&var_decl.name)
-                    .ok_or(CodegenError::VarNotFound(var_decl.name.clone()))?;
-
-                match codegen_var {
-                    CodegenVar::StackVar(stack_var) => {
-                        self.asm
-                            .push(format!("str w0, [sp, #{}]", stack_var.offset));
-                    }
-                }
+                self.generate_declaration(var_decl)?;
             }
         }
         Ok(())
@@ -130,6 +112,7 @@ impl ARMCodegen {
             Statement::Block(block) => self.generate_block(block)?,
             Statement::While(expr, stmt) => self.generate_while(expr, stmt)?,
             Statement::DoWhile(stmt, expr) => self.generate_do_while(stmt, expr)?,
+            Statement::For(for_loop) => self.generate_for(for_loop)?,
             Statement::Break => {
                 let cur_loop = self
                     .get_current_func()?
@@ -151,6 +134,29 @@ impl ARMCodegen {
         Ok(())
     }
 
+    fn generate_declaration(&mut self, var_decl: &VarDecl) -> CodegenResult<()> {
+        if let Some(expr) = &var_decl.initializer {
+            self.generate_expr(expr)?;
+        } else {
+            self.asm.push("mov w0, #0");
+        }
+
+        let codegen_var = self
+            .get_current_func()?
+            .stack
+            .var_map
+            .get(&var_decl.name)
+            .ok_or(CodegenError::VarNotFound(var_decl.name.clone()))?;
+
+        match codegen_var {
+            CodegenVar::StackVar(stack_var) => {
+                self.asm
+                    .push(format!("str w0, [sp, #{}]", stack_var.offset));
+            }
+        }
+
+        Ok(())
+    }
     fn generate_expr(&mut self, expr: &Expr) -> CodegenResult<()> {
         match expr {
             Expr::Constant(Constant::Int(int)) => {
@@ -207,6 +213,7 @@ impl ARMCodegen {
                 self.generate_ternary_cond_expr(ternary)?;
                 Ok(())
             }
+            Expr::Null => Ok(()),
         }
     }
 
@@ -450,6 +457,45 @@ impl ARMCodegen {
         self.generate_expr(expr)?;
         self.asm.push("cmp w0, #0");
         self.asm.push(format!("bne {}", start_label));
+        self.asm.push(format!("{}:", end_label));
+
+        self.funcs.last_mut().unwrap().loops.pop();
+        Ok(())
+    }
+
+    fn generate_for(&mut self, for_loop: &For) -> CodegenResult<()> {
+        let start_label = unique_label();
+        let end_label = unique_label();
+
+        // This is used for break/continue statements.
+        self.funcs.last_mut().unwrap().loops.push(Loop {
+            start_label: start_label.clone(),
+            end_label: end_label.clone(),
+        });
+
+        match &*for_loop.init {
+            DeclOrExpr::Declaration(decl) => {
+                self.generate_declaration(decl)?;
+            }
+            DeclOrExpr::Expression(expr) => {
+                self.generate_expr(expr)?;
+            }
+        }
+
+        self.asm.push(format!("{}:", start_label));
+
+        // If condition is a null expression, then we need to convert that into `1`.
+        if let Expr::Null = &*for_loop.condition {
+            self.asm.push("mov w0, #1");
+        } else {
+            self.generate_expr(&for_loop.condition)?;
+        }
+        self.asm.push("cmp w0, #0");
+        self.asm.push(format!("beq {}", end_label));
+
+        self.generate_statement(&for_loop.body)?;
+        self.generate_expr(&for_loop.increment)?;
+        self.asm.push(format!("b {}", start_label));
         self.asm.push(format!("{}:", end_label));
 
         self.funcs.last_mut().unwrap().loops.pop();

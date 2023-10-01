@@ -49,6 +49,7 @@ pub fn tokenize_ident_or_keyword(data: &str) -> TokenizerResult<(TokenKind, usiz
         "do" => Ok((TokenKind::Keyword(Keyword::Do), bytes_read)),
         "continue" => Ok((TokenKind::Keyword(Keyword::Continue), bytes_read)),
         "break" => Ok((TokenKind::Keyword(Keyword::Break), bytes_read)),
+        "for" => Ok((TokenKind::Keyword(Keyword::For), bytes_read)),
         _ => Ok((TokenKind::Identifier(got.to_string()), bytes_read)),
     }
 }

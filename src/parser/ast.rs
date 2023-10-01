@@ -54,6 +54,7 @@ pub enum Statement {
     Conditional(Conditional),
     While(Box<Expr>, Box<Statement>),   // condition, body
     DoWhile(Box<Statement>, Box<Expr>), // body, condition
+    For(For),
     Break,
     Continue,
     Null, // This is not the null keyword. It's a null statement, e.g `;`.
@@ -105,6 +106,7 @@ pub enum Expr {
     UnaryOp(UnaryOp, Box<Expr>),
     BinaryOp(BinaryOp, Box<Expr>, Box<Expr>),
     TernaryConditional(TernaryConditional),
+    Null, // This is not the null keyword. It's a null expression, e.g `;`.
 }
 
 #[derive(Debug, PartialEq)]
@@ -119,6 +121,20 @@ pub struct TernaryConditional {
     pub condition: Box<Expr>,
     pub if_expr: Box<Expr>,
     pub else_expr: Box<Expr>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct For {
+    pub init: Box<DeclOrExpr>,
+    pub condition: Box<Expr>,
+    pub increment: Box<Expr>,
+    pub body: Box<Statement>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum DeclOrExpr {
+    Declaration(VarDecl),
+    Expression(Expr),
 }
 
 #[allow(dead_code)]

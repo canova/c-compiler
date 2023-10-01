@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     codegen::{CodegenError, CodegenResult},
-    parser::ast::{Block, BlockItem, Expr, Statement, VarSize},
+    parser::ast::{Block, BlockItem, DeclOrExpr, Expr, Statement, VarDecl, VarSize},
 };
 
 #[derive(Debug, PartialEq)]
@@ -80,20 +80,7 @@ impl Block {
         for item in &self.items {
             match item {
                 BlockItem::Declaration(var_decl) => {
-                    if stack.var_map.contains_key(&var_decl.name) {
-                        return Err(CodegenError::VarAlreadyDeclared(var_decl.name.clone()));
-                    }
-
-                    let byte_size = var_decl.get_byte_size();
-                    stack.size += byte_size;
-                    // We need to invert the offsets at the end.
-                    stack.var_map.insert(
-                        var_decl.name.clone(),
-                        CodegenVar::StackVar(StackVar {
-                            size: var_decl.size,
-                            offset: stack.size,
-                        }),
-                    );
+                    var_decl.func_stack(stack)?;
                 }
                 BlockItem::Statement(stmt) => {
                     stmt.func_stack(stack)?;
@@ -130,6 +117,12 @@ impl Statement {
                 stmt.func_stack(stack)?;
                 expr.func_stack(stack)?;
             }
+            Statement::For(for_loop) => {
+                for_loop.init.func_stack(stack)?;
+                for_loop.condition.func_stack(stack)?;
+                for_loop.increment.func_stack(stack)?;
+                for_loop.body.func_stack(stack)?;
+            }
             Statement::Break | Statement::Continue | Statement::Null => {}
         }
 
@@ -165,9 +158,39 @@ impl Expr {
             }
             Expr::Var(_) => {}
             Expr::Constant(_) => {}
+            Expr::Null => {}
         }
 
         Ok(())
+    }
+}
+
+impl VarDecl {
+    fn func_stack(&self, stack: &mut FuncStack) -> CodegenResult<()> {
+        if stack.var_map.contains_key(&self.name) {
+            return Err(CodegenError::VarAlreadyDeclared(self.name.clone()));
+        }
+
+        let byte_size = self.get_byte_size();
+        stack.size += byte_size;
+        // We need to invert the offsets at the end.
+        stack.var_map.insert(
+            self.name.clone(),
+            CodegenVar::StackVar(StackVar {
+                size: self.size,
+                offset: stack.size,
+            }),
+        );
+
+        Ok(())
+    }
+}
+impl DeclOrExpr {
+    fn func_stack(&self, stack: &mut FuncStack) -> CodegenResult<()> {
+        match self {
+            DeclOrExpr::Expression(expr) => expr.func_stack(stack),
+            DeclOrExpr::Declaration(decl) => decl.func_stack(stack),
+        }
     }
 }
 
